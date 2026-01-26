@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>品牌工作小助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #e5e7eb; font-family: sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .container-box { background: #d1d5db; padding: 20px; border-radius: 8px; border: 1px solid #9ca3af; }
+        .display-area { background: #f3f4f6; border: 1px solid #4b5563; padding: 15px; border-radius: 4px; min-height: 100px; word-break: break-all; color: #374151; font-size: 14px; line-height: 1.6; text-align: left; }
+        .btn { background: #6b7280; color: white; padding: 10px 24px; border-radius: 4px; transition: 0.2s; cursor: pointer; font-weight: bold; border: none; }
+        .btn:hover { background: #4b5563; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .active-tab { background: #6b7280 !important; color: white !important; }
+        .instruction { color: #4b5563; font-size: 13px; margin-top: 15px; font-weight: 500; text-align: left; }
+        .link-text { color: #2563eb; text-decoration: underline; font-weight: bold; }
+        .label-text { display: block; font-size: 16px; font-weight: bold; color: #374151; margin-bottom: 8px; text-align: left; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start min-h-screen p-6">
+
+    <div class="w-full max-w-2xl">
+        <div class="flex mb-0 bg-gray-400 rounded-t-lg overflow-hidden border-b border-gray-500">
+            <button onclick="openTab('tab1')" id="btn-tab1" class="flex-1 py-4 text-base font-bold text-white border-r border-gray-500 active-tab transition-all">
+                🔗 品牌網址組合
+            </button>
+            <button onclick="openTab('tab2')" id="btn-tab2" class="flex-1 py-4 text-base font-bold text-white transition-all">
+                📊 Metabase 串接
+            </button>
+        </div>
+
+        <div class="bg-white p-8 rounded-b-lg shadow-xl">
+            
+            <div id="tab1" class="tab-content active text-center">
+                <div class="mb-5">
+                    <label class="label-text">1. 輸入品牌網址：</label>
+                    <input id="brandUrl" type="text" class="w-full p-3 rounded border-2 border-gray-300 outline-none focus:border-blue-500 transition-colors" 
+                        value="https://www.pazzo.com.tw" oninput="processTab1()">
+                </div>
+
+                <div class="mb-5 text-left">
+                    <label class="label-text">2. 請貼上 Excel 貨號：</label>
+                    <textarea id="skuInput1" class="w-full p-4 rounded border-2 border-gray-300 outline-none focus:border-blue-500 transition-colors" 
+                        rows="5" placeholder="請在此貼上 Excel 貨號..." oninput="processTab1()"></textarea>
+                </div>
+                
+                <div class="container-box">
+                    <div class="mb-4 text-center"><span class="bg-gray-600 text-white px-8 py-1.5 rounded-full text-sm font-bold shadow-sm">組合完成的網址</span></div>
+                    <div id="longUrlDisplay" class="display-area">等待輸入資料...</div>
+                    
+                    <div class="flex justify-center gap-4 mt-6">
+                        <button onclick="copyText('longUrlDisplay')" class="btn">複製完整網址</button>
+                        <button onclick="clearTab(1)" class="btn bg-gray-400 hover:bg-gray-500">清空</button>
+                    </div>
+
+                    <div class="border-t border-gray-400 mt-6 pt-4">
+                        <p class="instruction">
+                            貼心提醒：<br>
+                            將組合網址貼到 【品牌用】 UTM產生器 + 短網址服務: <br>
+                            <a href="https://tpx.tw/s/brand" target="_blank" class="link-text">https://tpx.tw/s/brand</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab2" class="tab-content text-center">
+                <div class="mb-5 text-left">
+                    <label class="label-text">請貼上 Excel 貨號：</label>
+                    <textarea id="skuInput2" class="w-full p-4 rounded border-2 border-gray-300 outline-none focus:border-blue-500 transition-colors" 
+                        rows="7" placeholder="直接在此貼上貨號列表..." oninput="processTab2()"></textarea>
+                </div>
+                
+                <div class="container-box">
+                    <div class="mb-4 text-center"><span class="bg-gray-600 text-white px-8 py-1.5 rounded-full text-sm font-bold shadow-sm">Metabase 專用格式 (逗號分隔)</span></div>
+                    <div id="metabaseDisplay" class="display-area">等待輸入資料...</div>
+                    
+                    <div class="flex justify-center gap-4 mt-6">
+                        <button onclick="copyText('metabaseDisplay')" class="btn">複製貨號串</button>
+                        <button onclick="clearTab(2)" class="btn bg-gray-400 hover:bg-gray-500">清空</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const MATCH_PARAM = "/match?barcode=";
+
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('button[id^="btn-tab"]').forEach(b => b.classList.remove('active-tab'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active-tab');
+        }
+
+        // 分頁一專用：保留網址與貨號
+        function processTab1() {
+            let brand = document.getElementById('brandUrl').value.trim();
+            const raw = document.getElementById('skuInput1').value;
+            // 過濾掉空值，並用逗號結合
+            const skus = raw.split(/[\n, \s\t]+/).filter(s => s.trim() !== '').join(',');
+            
+            const display = document.getElementById('longUrlDisplay');
+            if (!skus) {
+                display.innerText = "等待輸入資料...";
+                return;
+            }
+
+            if (brand.endsWith('/')) brand = brand.slice(0, -1);
+            display.innerText = brand + MATCH_PARAM + skus;
+        }
+
+        // 分頁二專用：移除網址參數，只留純貨號
+        function processTab2() {
+            const raw = document.getElementById('skuInput2').value;
+            // 這裡增加一個判斷：如果貼入的內容包含 http 或 barcode=，則將其移除，只取最後的貨號部分
+            const skus = raw.split(/[\n, \s\t]+/)
+                .map(item => {
+                    if (item.includes('barcode=')) return item.split('barcode=')[1];
+                    if (item.includes('http')) return ""; // 排除掉純網址
+                    return item;
+                })
+                .filter(s => s && s.trim() !== '' && !s.includes('http'))
+                .join(',');
+
+            document.getElementById('metabaseDisplay').innerText = skus || "等待輸入資料...";
+        }
+
+        function copyText(id) {
+            const text = document.getElementById(id).innerText;
+            if (text.includes("等待") || !text) return;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerText;
+                btn.innerText = "✅ 已複製";
+                btn.style.background = "#10b981";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "#6b7280";
+                }, 1500);
+            });
+        }
+
+        function clearTab(n) {
+            document.getElementById('skuInput' + n).value = '';
+            if (n === 1) processTab1(); else processTab2();
+        }
+    </script>
+</body>
+</html>
