@@ -2,7 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>品牌工作小助手</title>
+    <title>品牌工作小助手 ✨</title>
+    <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f916.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #e5e7eb; font-family: sans-serif; }
@@ -22,10 +23,10 @@
 
     <div class="w-full max-w-2xl">
         <div class="flex mb-0 bg-gray-400 rounded-t-lg overflow-hidden border-b border-gray-500">
-            <button onclick="openTab('tab1')" id="btn-tab1" class="flex-1 py-4 text-base font-bold text-white border-r border-gray-500 active-tab transition-all">
-                🔗 品牌網址組合
+            <button onclick="openTab('tab1')" id="btn-tab1" class="flex-1 py-4 text-base font-bold text-white border-r border-gray-500 active-tab">
+                🤖 品牌網址助手
             </button>
-            <button onclick="openTab('tab2')" id="btn-tab2" class="flex-1 py-4 text-base font-bold text-white transition-all">
+            <button onclick="openTab('tab2')" id="btn-tab2" class="flex-1 py-4 text-base font-bold text-white">
                 📊 Metabase 串接
             </button>
         </div>
@@ -56,7 +57,7 @@
 
                     <div class="border-t border-gray-400 mt-6 pt-4">
                         <p class="instruction">
-                            貼心提醒：<br>
+                            助手小提示：<br>
                             將組合網址貼到 【品牌用】 UTM產生器 + 短網址服務: <br>
                             <a href="https://tpx.tw/s/brand" target="_blank" class="link-text">https://tpx.tw/s/brand</a>
                         </p>
@@ -81,13 +82,11 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <script>
         const MATCH_PARAM = "/match?barcode=";
-
         function openTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('button[id^="btn-tab"]').forEach(b => b.classList.remove('active-tab'));
@@ -95,52 +94,38 @@
             document.getElementById('btn-' + tabId).classList.add('active-tab');
         }
 
-        // 分頁一專用：保留網址與貨號
+        function cleanSkus(text) {
+            if (!text) return "";
+            return text.split(/[\n, \s\t]+/).map(item => {
+                if (item.includes('barcode=')) return item.split('barcode=')[1];
+                if (item.includes('http')) return "";
+                return item;
+            }).filter(s => s && s.trim() !== '' && !s.includes('http')).join(',');
+        }
+
         function processTab1() {
             let brand = document.getElementById('brandUrl').value.trim();
-            const raw = document.getElementById('skuInput1').value;
-            // 過濾掉空值，並用逗號結合
-            const skus = raw.split(/[\n, \s\t]+/).filter(s => s.trim() !== '').join(',');
-            
+            const skus = cleanSkus(document.getElementById('skuInput1').value);
             const display = document.getElementById('longUrlDisplay');
-            if (!skus) {
-                display.innerText = "等待輸入資料...";
-                return;
-            }
-
+            if (!skus) { display.innerText = "等待輸入資料..."; return; }
             if (brand.endsWith('/')) brand = brand.slice(0, -1);
             display.innerText = brand + MATCH_PARAM + skus;
         }
 
-        // 分頁二專用：移除網址參數，只留純貨號
         function processTab2() {
-            const raw = document.getElementById('skuInput2').value;
-            // 這裡增加一個判斷：如果貼入的內容包含 http 或 barcode=，則將其移除，只取最後的貨號部分
-            const skus = raw.split(/[\n, \s\t]+/)
-                .map(item => {
-                    if (item.includes('barcode=')) return item.split('barcode=')[1];
-                    if (item.includes('http')) return ""; // 排除掉純網址
-                    return item;
-                })
-                .filter(s => s && s.trim() !== '' && !s.includes('http'))
-                .join(',');
-
+            const skus = cleanSkus(document.getElementById('skuInput2').value);
             document.getElementById('metabaseDisplay').innerText = skus || "等待輸入資料...";
         }
 
         function copyText(id) {
             const text = document.getElementById(id).innerText;
             if (text.includes("等待") || !text) return;
-            
             navigator.clipboard.writeText(text).then(() => {
                 const btn = event.target;
                 const originalText = btn.innerText;
                 btn.innerText = "✅ 已複製";
                 btn.style.background = "#10b981";
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.style.background = "#6b7280";
-                }, 1500);
+                setTimeout(() => { btn.innerText = originalText; btn.style.background = "#6b7280"; }, 1500);
             });
         }
 
