@@ -4,254 +4,253 @@
     <meta charset="UTF-8">
     <title>品牌工作小助手 ✨</title>
     <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f916.png" type="image/png">
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* ── 原有樣式 ── */
-        body { background: #e5e7eb; font-family: sans-serif; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .container-box { background: #d1d5db; padding: 20px; border-radius: 8px; border: 1px solid #9ca3af; }
-        .display-area { background: #f3f4f6; border: 1px solid #4b5563; padding: 15px; border-radius: 4px; min-height: 100px; word-break: break-all; color: #374151; font-size: 14px; line-height: 1.6; text-align: left; }
-        .btn { background: #6b7280; color: white; padding: 10px 24px; border-radius: 4px; transition: 0.2s; cursor: pointer; font-weight: bold; border: none; }
-        .btn:hover { background: #4b5563; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .active-tab { background: #6b7280 !important; color: white !important; }
-        .instruction { color: #4b5563; font-size: 13px; margin-top: 15px; font-weight: 500; text-align: left; }
-        .link-text { color: #2563eb; text-decoration: underline; font-weight: bold; }
-        .label-text { display: block; font-size: 16px; font-weight: bold; color: #374151; margin-bottom: 8px; text-align: left; }
-
-        /* ── TOP4 工具樣式 ── */
         :root {
             --bg: #f5f4f2; --surface: #ffffff; --border: #e0ddd8; --border2: #ccc9c3;
-            --accent: #1a1a1a; --accent-light: #444; --muted: #888; --green: #4a7c59;
+            --accent: #1a1a1a; --accent-light: #444; --muted: #666; --green: #4a7c59;
         }
-        .top4-wrap { font-family: 'Noto Sans TC', sans-serif; padding: 8px 0; }
-        .top4-wrap .brand-label { font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
-        .top4-wrap h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; color: var(--accent); }
-        .block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
-        .block-label { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; font-weight: 500; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--accent); font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; padding: 40px 24px 80px; }
+        .page-wrap { max-width: 680px; margin: 0 auto; }
+        .page-header { margin-bottom: 28px; }
+        .page-header .brand { font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+        .page-header h1 { font-size: 22px; font-weight: 700; color: var(--accent); }
+        .tab-bar { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px 10px 0 0; overflow: hidden; }
+        .tab-bar button { flex: 1; padding: 14px 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); background: transparent; border: none; border-right: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+        .tab-bar button:last-child { border-right: none; }
+        .tab-bar button:hover { color: var(--accent); background: var(--bg); }
+        .tab-bar button.active { color: var(--accent); font-weight: 700; background: var(--surface); border-bottom: 2px solid var(--accent); }
+        .tab-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; padding: 28px 28px 32px; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .block { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 12px; }
+        /* 灰字標題加大 */
+        .block-label { font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; font-weight: 700; }
         .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .chip { padding: 9px 20px; border: 1.5px solid var(--border2); background: transparent; color: var(--accent-light); border-radius: 7px; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+        .chip { padding: 9px 20px; border: 1.5px solid var(--border2); background: var(--surface); color: var(--accent-light); border-radius: 7px; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.15s; }
         .chip:hover { border-color: var(--accent); color: var(--accent); }
         .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
-        .spec-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-        .spec-tag { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; }
-        .top4-wrap input[type="text"] { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 15px; font-weight: 500; color: var(--accent); background: var(--surface); outline: none; transition: border-color 0.15s; }
-        .top4-wrap input[type="text"]:focus { border-color: var(--accent); }
-        .top4-wrap input[type="text"]::placeholder { color: #bbb; font-weight: 400; }
+        textarea, input[type="text"] { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; color: var(--accent); background: var(--surface); outline: none; transition: border-color 0.15s; resize: vertical; }
+        textarea:focus, input[type="text"]:focus { border-color: var(--accent); }
+        textarea::placeholder, input[type="text"]::placeholder { color: #bbb; }
         .input-sub { margin-top: 6px; font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
-        .color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-        .color-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+        .output-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; min-height: 72px; font-size: 13px; color: var(--accent-light); line-height: 1.7; word-break: break-all; font-family: 'DM Mono', monospace; }
+        .output-placeholder { color: #ccc; }
+        .action-row { display: flex; gap: 8px; margin-top: 12px; }
+        .primary-btn { flex: 1; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; letter-spacing: 1px; }
+        .primary-btn:hover { opacity: 0.8; }
+        .secondary-btn { padding: 12px 20px; background: transparent; color: var(--muted); border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+        .secondary-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .hint-box { margin-top: 14px; padding: 12px 14px; background: var(--bg); border-radius: 8px; font-size: 12px; color: var(--muted); line-height: 1.7; }
+        .hint-box a { color: #2563eb; text-decoration: underline; font-weight: 500; }
+        .spec-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .spec-tag { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; }
+        .color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+        .color-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
         .color-item-label { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
         .color-chips { display: flex; gap: 8px; align-items: center; }
-        .color-chip { width: 32px; height: 32px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; position: relative; flex-shrink: 0; }
+        .color-chip { width: 30px; height: 30px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; position: relative; flex-shrink: 0; }
         .black-chip { background: #000107; }
         .white-chip { background: #ffffff; border: 2px solid var(--border2); }
-        .color-chip.active::after { content: ''; position: absolute; inset: -4px; border: 2px solid #4a90d9; border-radius: 9px; }
-        .color-chip-label { font-size: 13px; color: var(--accent-light); font-weight: 500; }
+        .color-chip.active::after { content: ''; position: absolute; inset: -4px; border: 2px solid #4a90d9; border-radius: 8px; }
+        .color-chip-label { font-size: 12px; color: var(--accent-light); font-weight: 500; }
         .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .upload-slot-label { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
-        .upload-area { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 24px 12px; text-align: center; cursor: pointer; transition: all 0.15s; position: relative; background: var(--bg); min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        .upload-slot-label { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+        .upload-area { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 22px 12px; text-align: center; cursor: pointer; transition: all 0.15s; position: relative; background: var(--surface); min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         .upload-area:hover, .upload-area.drag-over { border-color: var(--accent); background: #eeece8; }
         .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
-        .upload-area.has-image { border-style: solid; border-color: var(--green); background: var(--surface); }
+        .upload-area.has-image { border-style: solid; border-color: var(--green); }
         .upload-area.has-image .upload-placeholder { display: none; }
         .upload-area.has-image .t4-thumb-wrap { display: flex; }
-        .t4-thumb-wrap { display: none; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; width: 100%; }
-        .t4-thumb { width: 100%; height: 90px; object-fit: cover; border-radius: 5px; }
+        .t4-thumb-wrap { display: none; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; width: 100%; }
+        .t4-thumb { width: 100%; height: 80px; object-fit: cover; border-radius: 5px; }
         .thumb-done { font-size: 11px; color: var(--green); font-family: 'DM Mono', monospace; font-weight: 500; }
-        .upload-icon { font-size: 20px; margin-bottom: 6px; color: var(--muted); }
-        .upload-text { font-size: 14px; font-weight: 500; color: var(--accent-light); margin-bottom: 2px; }
+        .upload-icon { font-size: 18px; margin-bottom: 6px; color: var(--muted); }
+        .upload-text { font-size: 13px; font-weight: 500; color: var(--accent-light); margin-bottom: 2px; }
         .upload-sub-s { font-size: 11px; color: #bbb; font-family: 'DM Mono', monospace; }
-        .upload-status { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
-        .t4-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); display: inline-block; transition: background 0.3s; flex-shrink: 0; }
+        .upload-status { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+        .t4-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); display: inline-block; transition: background 0.3s; flex-shrink: 0; }
         .t4-dot.done { background: var(--green); }
+        /* 預覽：4張 2x2 grid */
         .preview-section { display: none; }
         .preview-section.show { display: block; }
-        .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .preview-label { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+        .preview-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .preview-card { }
+        .preview-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px; font-family: 'DM Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
         .t4-canvas { border-radius: 6px; border: 1px solid var(--border); max-width: 100%; display: block; }
-        .dl-btn { display: block; width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; text-align: center; margin-top: 8px; letter-spacing: 1px; }
+        .dl-btn { display: block; width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 7px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; text-align: center; margin-top: 7px; }
         .dl-btn:hover { opacity: 0.75; }
-        .reset-btn { display: block; width: 100%; padding: 10px; background: transparent; color: var(--muted); border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+        .reset-btn { display: block; width: 100%; padding: 10px; background: transparent; color: var(--muted); border: 1.5px solid var(--border2); border-radius: 7px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-top: 10px; }
         .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+        #copyPopup { position: fixed; top: 32px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 10px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 700; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; display: flex; align-items: center; gap: 8px; z-index: 999; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.18); }
+        #copyPopup.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         @media (max-width: 580px) {
-            .upload-grid, .preview-grid, .color-row { grid-template-columns: 1fr; }
+            .upload-grid, .color-row, .preview-grid-4 { grid-template-columns: 1fr; }
             .chip { font-size: 13px; padding: 8px 14px; }
+            .tab-bar button { font-size: 11px; padding: 12px 4px; }
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-start min-h-screen p-6">
-
-    <div class="w-full max-w-2xl">
-        <div class="flex mb-0 bg-gray-400 rounded-t-lg overflow-hidden border-b border-gray-500">
-            <button onclick="openTab('tab1')" id="btn-tab1" class="flex-1 py-4 text-base font-bold text-white border-r border-gray-500 active-tab">
-                🤖 品牌網址助手
-            </button>
-            <button onclick="openTab('tab2')" id="btn-tab2" class="flex-1 py-4 text-base font-bold text-white border-r border-gray-500">
-                📊 Metabase 串接
-            </button>
-            <button onclick="openTab('tab3')" id="btn-tab3" class="flex-1 py-4 text-base font-bold text-white">
-                🖼 TOP4 商品圖
-            </button>
+<body>
+    <div id="copyPopup">✓ 已複製</div>
+    <div class="page-wrap">
+        <div class="page-header">
+            <div class="brand">Brand Tools</div>
+            <h1>品牌工作小助手</h1>
         </div>
-
-        <div class="bg-white p-8 rounded-b-lg shadow-xl">
+        <div class="tab-bar">
+            <button id="btn-tab1" onclick="openTab('tab1')" class="active">🔗 綁貨號連結</button>
+            <button id="btn-tab2" onclick="openTab('tab2')">📊 Metabase 串接</button>
+            <button id="btn-tab3" onclick="openTab('tab3')">🖼 TOP4 商品圖</button>
+        </div>
+        <div class="tab-body">
 
             <!-- Tab 1 -->
-            <div id="tab1" class="tab-content active text-center">
-                <div class="mb-5">
-                    <label class="label-text">1. 輸入品牌網址：</label>
-                    <input id="brandUrl" type="text" class="w-full p-3 rounded border-2 border-gray-300 outline-none focus:border-blue-500 transition-colors"
-                        value="https://www.pazzo.com.tw" oninput="processTab1()">
-                </div>
-                <div class="mb-5 text-left">
-                    <label class="label-text">2. 請貼上 Excel 貨號：</label>
-                    <textarea id="skuInput1" class="w-full p-4 rounded border-2 border-gray-300 outline-none focus:border-blue-500 transition-colors"
-                        rows="5" placeholder="請在此貼上 Excel 貨號..." oninput="processTab1()"></textarea>
-                </div>
-                <div class="container-box">
-                    <div class="mb-4 text-center"><span class="bg-gray-600 text-white px-8 py-1.5 rounded-full text-sm font-bold shadow-sm">組合完成的網址</span></div>
-                    <div id="longUrlDisplay" class="display-area">等待輸入資料...</div>
-                    <div class="flex justify-center gap-4 mt-6">
-                        <button onclick="copyText('longUrlDisplay')" class="btn">複製完整網址</button>
-                        <button onclick="clearTab(1)" class="btn bg-gray-400 hover:bg-gray-500">清空</button>
+            <div id="tab1" class="tab-pane active">
+                <div class="block">
+                    <div class="block-label">選擇品牌</div>
+                    <div class="btn-row">
+                        <button class="chip active" onclick="selectBrand(this,'https://www.pazzo.com.tw')">PAZZO</button>
+                        <button class="chip" onclick="selectBrand(this,'https://www.meierq.com')">Meierq</button>
+                        <button class="chip" onclick="selectBrand(this,'https://www.mercci22.com')">mercci22</button>
                     </div>
-                    <div class="border-t border-gray-400 mt-6 pt-4">
-                        <p class="instruction">
-                            助手小提示：<br>
-                            將組合網址貼到 【品牌用】 UTM產生器 + 短網址服務: <br>
-                            <a href="https://tpx.tw/s/brand" target="_blank" class="link-text">https://tpx.tw/s/brand</a>
-                        </p>
+                </div>
+                <div class="block">
+                    <div class="block-label">貼上 Excel 貨號</div>
+                    <textarea id="skuInput1" rows="5" placeholder="請在此貼上 Excel 貨號..." oninput="processTab1()"></textarea>
+                </div>
+                <div class="block">
+                    <div class="block-label">組合完成的網址</div>
+                    <div id="longUrlDisplay" class="output-box"><span class="output-placeholder">等待輸入資料...</span></div>
+                    <div class="action-row">
+                        <button class="primary-btn" onclick="copyOutput('longUrlDisplay')">複製完整網址</button>
+                        <button class="secondary-btn" onclick="clearTab(1)">清空</button>
+                    </div>
+                    <div class="hint-box">
+                        助手小提示：將組合網址貼到【品牌用】UTM產生器 + 短網址服務<br>
+                        <a href="https://tpx.tw/s/brand" target="_blank">https://tpx.tw/s/brand</a>
                     </div>
                 </div>
             </div>
 
             <!-- Tab 2 -->
-            <div id="tab2" class="tab-content text-center">
-                <div class="mb-5 text-left">
-                    <label class="label-text">請貼上 Excel 貨號：</label>
-                    <textarea id="skuInput2" class="w-full p-4 rounded border-2 border-gray-300 outline-none focus:border-blue-500 transition-colors"
-                        rows="7" placeholder="直接在此貼上貨號列表..." oninput="processTab2()"></textarea>
+            <div id="tab2" class="tab-pane">
+                <div class="block">
+                    <div class="block-label">貼上 Excel 貨號</div>
+                    <textarea id="skuInput2" rows="7" placeholder="直接在此貼上貨號列表..." oninput="processTab2()"></textarea>
                 </div>
-                <div class="container-box">
-                    <div class="mb-4 text-center"><span class="bg-gray-600 text-white px-8 py-1.5 rounded-full text-sm font-bold shadow-sm">Metabase 專用格式 (逗號分隔)</span></div>
-                    <div id="metabaseDisplay" class="display-area">等待輸入資料...</div>
-                    <div class="flex justify-center gap-4 mt-6">
-                        <button onclick="copyText('metabaseDisplay')" class="btn">複製貨號串</button>
-                        <button onclick="clearTab(2)" class="btn bg-gray-400 hover:bg-gray-500">清空</button>
+                <div class="block">
+                    <div class="block-label">Metabase 專用格式（逗號分隔）</div>
+                    <div id="metabaseDisplay" class="output-box"><span class="output-placeholder">等待輸入資料...</span></div>
+                    <div class="action-row">
+                        <button class="primary-btn" onclick="copyOutput('metabaseDisplay')">複製貨號串</button>
+                        <button class="secondary-btn" onclick="clearTab(2)">清空</button>
                     </div>
                 </div>
             </div>
 
             <!-- Tab 3 -->
-            <div id="tab3" class="tab-content">
-                <div class="top4-wrap">
-                    <div class="brand-label">PAZZO</div>
-                    <h2>官網首頁熱銷排行 TOP4</h2>
-
-                    <div class="block">
-                        <div class="block-label">裝置</div>
-                        <div class="btn-row">
-                            <button class="chip active" data-device="pc">PC</button>
-                            <button class="chip" data-device="mb">Mobile</button>
-                        </div>
+            <div id="tab3" class="tab-pane">
+                <div class="block">
+                    <div class="block-label">排名</div>
+                    <div class="btn-row">
+                        <button class="chip active" data-top="1">TOP 1</button>
+                        <button class="chip" data-top="2">TOP 2</button>
+                        <button class="chip" data-top="3">TOP 3</button>
+                        <button class="chip" data-top="4">TOP 4</button>
                     </div>
-
-                    <div class="block">
-                        <div class="block-label">排名</div>
-                        <div class="btn-row">
-                            <button class="chip active" data-top="1">TOP 1</button>
-                            <button class="chip" data-top="2">TOP 2</button>
-                            <button class="chip" data-top="3">TOP 3</button>
-                            <button class="chip" data-top="4">TOP 4</button>
-                        </div>
-                        <div class="color-row">
-                            <div class="color-item">
-                                <div class="color-item-label">商品平拍 · TOP 文字色</div>
-                                <div class="color-chips">
-                                    <div class="color-chip black-chip active" data-target="item" data-color="black"></div>
-                                    <div class="color-chip white-chip" data-target="item" data-color="white"></div>
-                                    <span class="color-chip-label" id="itemColorLabel">黑色</span>
-                                </div>
-                            </div>
-                            <div class="color-item">
-                                <div class="color-item-label">麻豆照 · TOP 文字色</div>
-                                <div class="color-chips">
-                                    <div class="color-chip black-chip active" data-target="model" data-color="black"></div>
-                                    <div class="color-chip white-chip" data-target="model" data-color="white"></div>
-                                    <span class="color-chip-label" id="modelColorLabel">黑色</span>
-                                </div>
+                    <div class="color-row">
+                        <div class="color-item">
+                            <div class="color-item-label">商品平拍 · TOP 文字色</div>
+                            <div class="color-chips">
+                                <div class="color-chip black-chip active" data-target="item" data-color="black"></div>
+                                <div class="color-chip white-chip" data-target="item" data-color="white"></div>
+                                <span class="color-chip-label" id="itemColorLabel">黑色</span>
                             </div>
                         </div>
-                        <div class="spec-row" id="specRow"></div>
-                    </div>
-
-                    <div class="block">
-                        <div class="block-label">商品名稱</div>
-                        <input type="text" id="productName" placeholder="例：磨毛立領雙拉鍊針織上衣外套" maxlength="30">
-                        <div class="input-sub">最多 30 字，輸入後即時更新預覽</div>
-                    </div>
-
-                    <div class="block">
-                        <div class="block-label">上傳商品圖</div>
-                        <div class="upload-grid">
-                            <div>
-                                <div class="upload-slot-label">商品平拍</div>
-                                <div class="upload-area" id="uploadArea1">
-                                    <input type="file" id="fileInput1" accept="image/*">
-                                    <div class="upload-placeholder">
-                                        <div class="upload-icon">⬆</div>
-                                        <div class="upload-text">商品平拍</div>
-                                        <div class="upload-sub-s">點擊或拖拉上傳</div>
-                                    </div>
-                                    <div class="t4-thumb-wrap">
-                                        <img class="t4-thumb" id="thumb1" src="" alt="">
-                                        <div class="thumb-done">已上傳</div>
-                                    </div>
-                                </div>
+                        <div class="color-item">
+                            <div class="color-item-label">麻豆照 · TOP 文字色</div>
+                            <div class="color-chips">
+                                <div class="color-chip black-chip active" data-target="model" data-color="black"></div>
+                                <div class="color-chip white-chip" data-target="model" data-color="white"></div>
+                                <span class="color-chip-label" id="modelColorLabel">黑色</span>
                             </div>
-                            <div>
-                                <div class="upload-slot-label">麻豆照</div>
-                                <div class="upload-area" id="uploadArea0">
-                                    <input type="file" id="fileInput0" accept="image/*">
-                                    <div class="upload-placeholder">
-                                        <div class="upload-icon">⬆</div>
-                                        <div class="upload-text">麻豆照</div>
-                                        <div class="upload-sub-s">點擊或拖拉上傳</div>
-                                    </div>
-                                    <div class="t4-thumb-wrap">
-                                        <img class="t4-thumb" id="thumb0" src="" alt="">
-                                        <div class="thumb-done">已上傳</div>
-                                    </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="block">
+                    <div class="block-label">商品名稱</div>
+                    <input type="text" id="productName" placeholder="例：磨毛立領雙拉鍊針織上衣外套" maxlength="30">
+                    <div class="input-sub">最多 30 字，輸入後即時更新預覽</div>
+                </div>
+                <div class="block">
+                    <div class="block-label">上傳商品圖</div>
+                    <div class="upload-grid">
+                        <div>
+                            <div class="upload-slot-label">商品平拍</div>
+                            <div class="upload-area" id="uploadArea1">
+                                <input type="file" id="fileInput1" accept="image/*">
+                                <div class="upload-placeholder">
+                                    <div class="upload-icon">⬆</div>
+                                    <div class="upload-text">商品平拍</div>
+                                    <div class="upload-sub-s">點擊或拖拉上傳</div>
+                                </div>
+                                <div class="t4-thumb-wrap">
+                                    <img class="t4-thumb" id="thumb1" src="" alt="">
+                                    <div class="thumb-done">已上傳</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="upload-status">
-                            <span class="t4-dot" id="dot1"></span> 商品平拍
-                            <span style="color:var(--border2)">·</span>
-                            <span class="t4-dot" id="dot0"></span> 麻豆照
-                            <span style="color:var(--border2)">— 兩張都上傳後顯示預覽</span>
+                        <div>
+                            <div class="upload-slot-label">麻豆照</div>
+                            <div class="upload-area" id="uploadArea0">
+                                <input type="file" id="fileInput0" accept="image/*">
+                                <div class="upload-placeholder">
+                                    <div class="upload-icon">⬆</div>
+                                    <div class="upload-text">麻豆照</div>
+                                    <div class="upload-sub-s">點擊或拖拉上傳</div>
+                                </div>
+                                <div class="t4-thumb-wrap">
+                                    <img class="t4-thumb" id="thumb0" src="" alt="">
+                                    <div class="thumb-done">已上傳</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <div class="upload-status">
+                        <span class="t4-dot" id="dot1"></span> 商品平拍
+                        <span style="color:var(--border2)">·</span>
+                        <span class="t4-dot" id="dot0"></span> 麻豆照
+                        <span style="color:var(--border2)">— 兩張都上傳後顯示預覽</span>
+                    </div>
+                </div>
 
-                    <div class="block preview-section" id="previewSection">
-                        <div class="block-label">預覽 · 下載</div>
-                        <div class="preview-grid">
-                            <div>
-                                <div class="preview-label">商品平拍</div>
-                                <canvas class="t4-canvas" id="canvas1"></canvas>
-                                <button class="dl-btn" id="dlBtn1">下載平拍圖</button>
-                            </div>
-                            <div>
-                                <div class="preview-label">麻豆照</div>
-                                <canvas class="t4-canvas" id="canvas0"></canvas>
-                                <button class="dl-btn" id="dlBtn0">下載麻豆照</button>
-                            </div>
+                <!-- 預覽：2x2，PC/MB x 平拍/麻豆 -->
+                <div class="block preview-section" id="previewSection">
+                    <div class="block-label">預覽 · 下載</div>
+                    <div class="preview-grid-4">
+                        <div class="preview-card">
+                            <div class="preview-label">平拍 · PC</div>
+                            <canvas class="t4-canvas" id="canvas-item-pc"></canvas>
                         </div>
-                        <button class="reset-btn" id="resetBtn">重新開始</button>
+                        <div class="preview-card">
+                            <div class="preview-label">平拍 · Mobile</div>
+                            <canvas class="t4-canvas" id="canvas-item-mb"></canvas>
+                        </div>
+                        <div class="preview-card">
+                            <div class="preview-label">麻豆照 · PC</div>
+                            <canvas class="t4-canvas" id="canvas-model-pc"></canvas>
+                        </div>
+                        <div class="preview-card">
+                            <div class="preview-label">麻豆照 · Mobile</div>
+                            <canvas class="t4-canvas" id="canvas-model-mb"></canvas>
+                        </div>
                     </div>
+                    <button class="dl-btn" id="dlAllBtn" style="margin-top:14px;" onclick="downloadAll()">下載全部 4 張 (.zip)</button>
+                    <button class="reset-btn" id="resetBtn">重新開始</button>
                 </div>
             </div>
 
@@ -259,51 +258,68 @@
     </div>
 
     <script>
-        /* ── Tab 切換 ── */
-        const MATCH_PARAM = "/match?barcode=";
-        function openTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('button[id^="btn-tab"]').forEach(b => b.classList.remove('active-tab'));
-            document.getElementById(tabId).classList.add('active');
-            document.getElementById('btn-' + tabId).classList.add('active-tab');
+        /* ── Tab ── */
+        function openTab(id) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('btn-' + id).classList.add('active');
         }
+
+        /* ── Copy Popup ── */
+        let popupTimer;
+        function showCopyPopup() {
+            const p = document.getElementById('copyPopup');
+            p.classList.add('show');
+            clearTimeout(popupTimer);
+            popupTimer = setTimeout(() => p.classList.remove('show'), 1800);
+        }
+        function copyOutput(id) {
+            const text = document.getElementById(id).innerText.trim();
+            if (!text || text.includes('等待輸入')) return;
+            navigator.clipboard.writeText(text).then(showCopyPopup);
+        }
+
+        /* ── Tab 1 ── */
+        const MATCH_PARAM = '/match?barcode=';
+        let selectedBrandUrl = 'https://www.pazzo.com.tw';
+
+        function selectBrand(btn, url) {
+            selectedBrandUrl = url;
+            document.querySelectorAll('[onclick^="selectBrand"]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // 切換品牌時清空貨號
+            document.getElementById('skuInput1').value = '';
+            document.getElementById('longUrlDisplay').innerHTML = '<span class="output-placeholder">等待輸入資料...</span>';
+        }
+
         function cleanSkus(text) {
-            if (!text) return "";
-            return text.split(/[\n, \s\t]+/).map(item => {
-                if (item.includes('barcode=')) return item.split('barcode=')[1];
-                if (item.includes('http')) return "";
-                return item;
-            }).filter(s => s && s.trim() !== '' && !s.includes('http')).join(',');
+            if (!text) return '';
+            let items = text.split(/[\n,\t]+/).map(s => s.trim()).filter(s => s && !s.includes('http'));
+            if (items.length === 1 && items[0].length > 12) {
+                const raw = items[0]; items = [];
+                for (let i = 0; i < raw.length; i += 12) { const c = raw.slice(i, i+12); if (c.length === 12) items.push(c); }
+            }
+            return items.map(item => item.includes('barcode=') ? item.split('barcode=')[1] : item).join(',');
         }
+
         function processTab1() {
-            let brand = document.getElementById('brandUrl').value.trim();
             const skus = cleanSkus(document.getElementById('skuInput1').value);
-            const display = document.getElementById('longUrlDisplay');
-            if (!skus) { display.innerText = "等待輸入資料..."; return; }
-            if (brand.endsWith('/')) brand = brand.slice(0, -1);
-            display.innerText = brand + MATCH_PARAM + skus;
+            const el = document.getElementById('longUrlDisplay');
+            el.innerHTML = skus ? selectedBrandUrl.replace(/\/$/, '') + MATCH_PARAM + skus : '<span class="output-placeholder">等待輸入資料...</span>';
         }
+
         function processTab2() {
             const skus = cleanSkus(document.getElementById('skuInput2').value);
-            document.getElementById('metabaseDisplay').innerText = skus || "等待輸入資料...";
+            document.getElementById('metabaseDisplay').innerHTML = skus ? skus : '<span class="output-placeholder">等待輸入資料...</span>';
         }
-        function copyText(id) {
-            const text = document.getElementById(id).innerText;
-            if (text.includes("等待") || !text) return;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = event.target;
-                const originalText = btn.innerText;
-                btn.innerText = "✅ 已複製";
-                btn.style.background = "#10b981";
-                setTimeout(() => { btn.innerText = originalText; btn.style.background = "#6b7280"; }, 1500);
-            });
-        }
+
         function clearTab(n) {
             document.getElementById('skuInput' + n).value = '';
             if (n === 1) processTab1(); else processTab2();
         }
 
-        /* ── TOP4 工具 ── */
+        /* ── Tab 3: TOP4 ── */
         const SPECS = {
             pc: {
                 frame: { w: 640, h: 875 },
@@ -329,89 +345,95 @@
             }
         };
 
-        let currentDevice = 'pc';
-        let currentTop    = 1;
-        let topColors     = { model: '#000107', item: '#000107' };
-        let t4images      = [null, null];
+        let currentTop  = 1;
+        let topColors   = { model: '#000107', item: '#000107' };
+        let t4images    = [null, null]; // 0=麻豆, 1=平拍
 
         function getDateStr() {
             const d = new Date();
             return String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
         }
 
-        function updateSpec() {
-            const t = SPECS[currentDevice].tops[currentTop];
-            const f = SPECS[currentDevice].frame;
-            document.getElementById('specRow').innerHTML = `
-                <div class="spec-tag">${f.w} × ${f.h}</div>
-                <div class="spec-tag">圖片 ${t.imgW} × ${t.imgH}</div>
-                <div class="spec-tag">left ${t.imgLeft}</div>`;
-        }
-
-        function drawToCanvas(canvas, img, scale, colorKey) {
-            const device = SPECS[currentDevice];
-            const t   = device.tops[currentTop];
-            const f   = device.frame;
-            const tl  = device.topLabel;
-            const nl  = device.nameLabel;
+        function drawToCanvas(canvas, img, device, colorKey) {
+            const dev = SPECS[device], t = dev.tops[currentTop], f = dev.frame, tl = dev.topLabel, nl = dev.nameLabel;
             const name = document.getElementById('productName').value.trim();
-            const ctx  = canvas.getContext('2d');
-            canvas.width  = Math.round(f.w * scale);
-            canvas.height = Math.round(f.h * scale);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // 預覽縮放
+            const maxW = Math.min(270, Math.floor((window.innerWidth - 140) / 2));
+            const scale = canvas._fullSize ? 1 : Math.min(1, maxW / f.w);
+            const ctx = canvas.getContext('2d');
+            canvas.width = Math.round(f.w * scale); canvas.height = Math.round(f.h * scale);
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             if (img) {
-                const ir = img.naturalWidth / img.naturalHeight;
-                const br = t.imgW / t.imgH;
+                const ir = img.naturalWidth / img.naturalHeight, br = t.imgW / t.imgH;
                 let sw, sh, sx, sy;
                 if (ir > br) { sh = img.naturalHeight; sw = sh * br; sy = 0; sx = (img.naturalWidth - sw) / 2; }
-                else         { sw = img.naturalWidth;  sh = sw / br; sx = 0; sy = (img.naturalHeight - sh) / 2; }
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(t.imgLeft * scale, t.imgTop * scale, t.imgW * scale, t.imgH * scale);
-                ctx.clip();
-                ctx.drawImage(img, sx, sy, sw, sh, t.imgLeft * scale, t.imgTop * scale, t.imgW * scale, t.imgH * scale);
+                else { sw = img.naturalWidth; sh = sw / br; sx = 0; sy = (img.naturalHeight - sh) / 2; }
+                ctx.save(); ctx.beginPath();
+                ctx.rect(t.imgLeft*scale, t.imgTop*scale, t.imgW*scale, t.imgH*scale); ctx.clip();
+                ctx.drawImage(img, sx, sy, sw, sh, t.imgLeft*scale, t.imgTop*scale, t.imgW*scale, t.imgH*scale);
                 ctx.restore();
             }
             ctx.save();
-            ctx.font = `${tl.fontWeight} ${tl.fontSize * scale}px 'PingFang SC','Noto Sans TC',sans-serif`;
-            ctx.fillStyle = topColors[colorKey];
-            ctx.textBaseline = 'middle';
-            ctx.textAlign = 'left';
+            ctx.font = `${tl.fontWeight} ${tl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`;
+            ctx.fillStyle = topColors[colorKey]; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
             ctx.letterSpacing = (tl.letterSpacing * tl.fontSize * scale) + 'px';
-            ctx.fillText('TOP' + currentTop, t.topX * scale, (tl.topY + tl.lineHeight / 2) * scale);
+            ctx.fillText('TOP' + currentTop, t.topX*scale, (tl.topY + tl.lineHeight/2)*scale);
             ctx.restore();
             if (name) {
                 ctx.save();
-                ctx.font = `${nl.fontWeight} ${nl.fontSize * scale}px 'PingFang SC','Noto Sans TC',sans-serif`;
-                ctx.fillStyle = '#000000';
-                ctx.textBaseline = 'middle';
-                ctx.textAlign = 'center';
+                ctx.font = `${nl.fontWeight} ${nl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`;
+                ctx.fillStyle = '#000'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
                 ctx.letterSpacing = (nl.letterSpacing * nl.fontSize * scale) + 'px';
-                ctx.fillText(name, (t.imgLeft + t.imgW / 2) * scale, nl.cy * scale);
+                ctx.fillText(name, (t.imgLeft + t.imgW/2)*scale, nl.cy*scale);
                 ctx.restore();
             }
         }
 
         function renderPreviews() {
             if (!t4images[0] || !t4images[1]) return;
-            const maxW  = Math.min(340, Math.floor((window.innerWidth - 100) / 2));
-            const scale = Math.min(1, maxW / SPECS[currentDevice].frame.w);
-            drawToCanvas(document.getElementById('canvas0'), t4images[0], scale, 'model');
-            drawToCanvas(document.getElementById('canvas1'), t4images[1], scale, 'item');
-            const sec = document.getElementById('previewSection');
-            sec.classList.add('show');
-            setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+            drawToCanvas(document.getElementById('canvas-item-pc'), t4images[1], 'pc', 'item');
+            drawToCanvas(document.getElementById('canvas-item-mb'), t4images[1], 'mb', 'item');
+            drawToCanvas(document.getElementById('canvas-model-pc'), t4images[0], 'pc', 'model');
+            drawToCanvas(document.getElementById('canvas-model-mb'), t4images[0], 'mb', 'model');
+            document.getElementById('previewSection').classList.add('show');
+            setTimeout(() => document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
         }
 
-        async function downloadCanvas(idx) {
-            const suffix   = idx === 0 ? 'model' : 'item';
-            const colorKey = idx === 0 ? 'model' : 'item';
+        async function downloadAll() {
+            const btn = document.getElementById('dlAllBtn');
+            btn.textContent = '壓縮中...'; btn.disabled = true;
+            const tasks = [
+                { img: t4images[1], device: 'pc', colorKey: 'item',  suffix: 'item_pc'  },
+                { img: t4images[1], device: 'mb', colorKey: 'item',  suffix: 'item_mb'  },
+                { img: t4images[0], device: 'pc', colorKey: 'model', suffix: 'model_pc' },
+                { img: t4images[0], device: 'mb', colorKey: 'model', suffix: 'model_mb' },
+            ];
+            const zip = new JSZip();
+            for (const task of tasks) {
+                const c = document.createElement('canvas');
+                c._fullSize = true;
+                drawToCanvas(c, task.img, task.device, task.colorKey);
+                const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+                zip.file(`TOP${currentTop}_${getDateStr()}_${task.suffix}.png`, blob);
+            }
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `TOP${currentTop}_${getDateStr()}.zip`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            btn.textContent = '下載全部 4 張 (.zip)'; btn.disabled = false;
+        }
+
+        async function downloadOne(img, device, colorKey, suffix) {
+            if (!img) return;
             const c = document.createElement('canvas');
-            drawToCanvas(c, t4images[idx], 1, colorKey);
+            c._fullSize = true;
+            drawToCanvas(c, img, device, colorKey);
             const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
             a.href = url;
             a.download = `TOP${currentTop}_${getDateStr()}_${suffix}.png`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -439,11 +461,7 @@
         [0, 1].forEach(idx => {
             const input = document.getElementById('fileInput' + idx);
             const area  = document.getElementById('uploadArea' + idx);
-            input.addEventListener('change', async e => {
-                if (!e.target.files[0]) return;
-                await t4LoadImage(e.target.files[0], idx);
-                renderPreviews();
-            });
+            input.addEventListener('change', async e => { if (!e.target.files[0]) return; await t4LoadImage(e.target.files[0], idx); renderPreviews(); });
             area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
             area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
             area.addEventListener('drop', async e => {
@@ -453,23 +471,15 @@
             });
         });
 
-        document.querySelectorAll('[data-device]').forEach(btn => btn.addEventListener('click', () => {
-            currentDevice = btn.dataset.device;
-            document.querySelectorAll('[data-device]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            updateSpec(); renderPreviews();
-        }));
-
         document.querySelectorAll('[data-top]').forEach(btn => btn.addEventListener('click', () => {
             currentTop = parseInt(btn.dataset.top);
             document.querySelectorAll('[data-top]').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            updateSpec(); renderPreviews();
+            renderPreviews();
         }));
 
         document.querySelectorAll('.color-chip').forEach(chip => chip.addEventListener('click', () => {
-            const target = chip.dataset.target;
-            const color  = chip.dataset.color;
+            const target = chip.dataset.target, color = chip.dataset.color;
             topColors[target] = color === 'white' ? '#ffffff' : '#000107';
             document.querySelectorAll('.color-chip[data-target="' + target + '"]').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
@@ -478,8 +488,7 @@
         }));
 
         document.getElementById('productName').addEventListener('input', () => renderPreviews());
-        document.getElementById('dlBtn0').addEventListener('click', () => downloadCanvas(0));
-        document.getElementById('dlBtn1').addEventListener('click', () => downloadCanvas(1));
+
         document.getElementById('resetBtn').addEventListener('click', () => {
             t4images = [null, null];
             [0, 1].forEach(i => {
@@ -498,8 +507,6 @@
             document.getElementById('modelColorLabel').textContent = '黑色';
             document.getElementById('previewSection').classList.remove('show');
         });
-
-        updateSpec();
     </script>
 </body>
 </html>
