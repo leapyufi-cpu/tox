@@ -501,7 +501,7 @@
         function xlsxReadFile(file) {
             return new Promise((resolve, reject) => {
                 const r = new FileReader();
-                r.onload = e => { try { resolve(XLSX.read(e.target.result, { type: 'array', cellDates: true })); } catch(err) { reject(err); } };
+                r.onload = e => { try { resolve({ wb: XLSX.read(e.target.result, { type: 'array', cellDates: true, cellStyles: true }), raw: e.target.result }); } catch(err) { reject(err); } };
                 r.onerror = reject; r.readAsArrayBuffer(file);
             });
         }
@@ -530,7 +530,7 @@
 
         async function loadPromoFile(file) {
             try {
-                const wb = await xlsxReadFile(file);
+                const { wb } = await xlsxReadFile(file);
                 const rows = xlsxGetRows(wb);
                 const hi = findHeaderRow(rows);
                 const headers = rows[hi];
@@ -563,7 +563,7 @@
         async function loadNormalFile(file) {
             if (normalFilesData.find(d => d.file.name === file.name)) return;
             try {
-                const wb = await xlsxReadFile(file);
+                const { wb } = await xlsxReadFile(file);
                 const rows = xlsxGetRows(wb);
                 const hi = findHeaderRow(rows);
                 const headers = rows[hi];
@@ -626,9 +626,61 @@
                 if (kept.length === 0) { fullyExcluded.push(nd.file.name); xlog(`${nd.file.name}  —  全部商品須排除，不產出檔案`, 'warn'); continue; }
                 xlog(`${nd.file.name}`, 'info');
                 xlog(`  原始 ${fmt(orig)} 筆  →  排除 ${fmt(excl)} 筆  →  剩餘 ${fmt(kept.length)} 筆`);
-                const allOrigRows = XLSX.utils.sheet_to_json(nd.wb.Sheets[nd.wb.SheetNames[0]], { header: 1, defval: '' });
-                const newWs = XLSX.utils.aoa_to_sheet([...allOrigRows.slice(0, nd.headerRowIdx + 1), ...kept]);
-                const newWb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(newWb, newWs, nd.wb.SheetNames[0]);
+
+                // 直接從原始 worksheet 刪除要排除的列，保留所有格式
+                const sheetName = nd.wb.SheetNames[0];
+                const ws = nd.wb.Sheets[sheetName];
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                const headerRow = nd.headerRowIdx; // 0-based
+
+                // 找出要保留的資料列（kept 已是過濾後的資料）
+                // 重建：保留 header 以上的列 + kept 的列
+                const keptSet = new Set(kept.map(r => String(r[nci] || '').trim()));
+
+                // 收集原始所有列（含header以上）
+                const newCells = {};
+                let newRowIdx = 0;
+
+                // 複製 header 以上的列（含 header）
+                for (let r = range.s.r; r <= headerRow; r++) {
+                    for (let c = range.s.c; c <= range.e.c; c++) {
+                        const oldAddr = XLSX.utils.encode_cell({ r, c });
+                        const newAddr = XLSX.utils.encode_cell({ r: newRowIdx, c });
+                        if (ws[oldAddr]) {
+                            const cell = Object.assign({}, ws[oldAddr]);
+                            delete cell.z; // 移除 number_format，保留原始空白格式
+                            newCells[newAddr] = cell;
+                        }
+                    }
+                    newRowIdx++;
+                }
+
+                // 複製保留的資料列
+                for (let r = headerRow + 1; r <= range.e.r; r++) {
+                    const barAddr = XLSX.utils.encode_cell({ r, c: nci });
+                    const barVal = ws[barAddr] ? String(ws[barAddr].v || '').trim() : '';
+                    if (!barVal) continue;
+                    if (!keptSet.has(barVal)) continue;
+                    for (let c = range.s.c; c <= range.e.c; c++) {
+                        const oldAddr = XLSX.utils.encode_cell({ r, c });
+                        const newAddr = XLSX.utils.encode_cell({ r: newRowIdx, c });
+                        if (ws[oldAddr]) {
+                            const cell = Object.assign({}, ws[oldAddr]);
+                            delete cell.z; // 移除 number_format，保留原始空白格式
+                            newCells[newAddr] = cell;
+                        }
+                    }
+                    newRowIdx++;
+                }
+
+                // 更新 worksheet
+                const newWs = Object.assign({}, newCells);
+                newWs['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: range.s.c }, e: { r: newRowIdx - 1, c: range.e.c } });
+                if (ws['!cols']) newWs['!cols'] = ws['!cols'];
+                if (ws['!rows']) newWs['!rows'] = ws['!rows'];
+
+                const newWb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWb, newWs, sheetName);
                 resultFiles.push({ name: nd.file.name.replace(/\.xlsx?$/i, '') + '_排除活動款.xlsx', wb: newWb, excl, kept: kept.length, orig });
             }
             xlog('─'.repeat(44), 'divider');
@@ -649,13 +701,74 @@
             document.getElementById('summarySection').classList.add('visible');
             document.getElementById('summarySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        function downloadOne(idx) { XLSX.writeFile(resultFiles[idx].wb, resultFiles[idx].name); }
+        // 產出 xlsx bytes，修正字串格式為 sharedStrings（t="s"）
+        async function buildCleanXlsx(wb) {
+            // 用 SheetJS 寫出 xlsx，強制使用 sharedStrings
+            const raw = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true });
+            const zip = await JSZip.loadAsync(raw);
+
+            // 1. 收集所有 inline string 值，建立 sharedStrings 表
+            const sharedStrings = [];
+            const sharedMap = {};
+            function getSharedIdx(val) {
+                if (!(val in sharedMap)) { sharedMap[val] = sharedStrings.length; sharedStrings.push(val); }
+                return sharedMap[val];
+            }
+
+            // 2. 處理每個 sheet，把 t="str" 的 cell 改成 t="s"
+            const sheetFiles = Object.keys(zip.files).filter(f => f.match(/xl\/worksheets\/sheet\d+\.xml$/));
+            for (const fname of sheetFiles) {
+                let xml = await zip.files[fname].async('string');
+                // 把 <c r="..." t="str"><v>VALUE</v></c> 換成 <c r="..." t="s"><v>IDX</v></c>
+                xml = xml.replace(/<c([^>]*)\bt="str"([^>]*)><v>([^<]*)<\/v><\/c>/g, (match, pre, post, val) => {
+                    const decoded = val.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+                    const idx = getSharedIdx(decoded);
+                    return `<c${pre}${post} t="s"><v>${idx}</v></c>`;
+                });
+                zip.file(fname, xml);
+            }
+
+            // 3. 寫入或更新 sharedStrings.xml
+            if (sharedStrings.length > 0) {
+                const ssXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sharedStrings.length}" uniqueCount="${sharedStrings.length}">${
+                    sharedStrings.map(s => `<si><t>${s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</t></si>`).join('')
+                }</sst>`;
+                zip.file('xl/sharedStrings.xml', ssXml);
+
+                // 確保 workbook.xml.rels 有 sharedStrings 的關聯
+                let rels = await zip.files['xl/_rels/workbook.xml.rels'].async('string');
+                if (!rels.includes('sharedStrings')) {
+                    rels = rels.replace('</Relationships>', '<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>');
+                    zip.file('xl/_rels/workbook.xml.rels', rels);
+                }
+
+                // 確保 [Content_Types].xml 有 sharedStrings 的 type
+                let ct = await zip.files['[Content_Types].xml'].async('string');
+                if (!ct.includes('sharedStrings')) {
+                    ct = ct.replace('</Types>', '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
+                    zip.file('[Content_Types].xml', ct);
+                }
+            }
+
+            return await zip.generateAsync({ type: 'uint8array' });
+        }
+
+        async function downloadOne(idx) {
+            const r = resultFiles[idx];
+            const bytes = await buildCleanXlsx(r.wb);
+            const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: r.name });
+            a.click(); URL.revokeObjectURL(a.href);
+        }
         async function downloadAll() {
             if (!resultFiles.length) return;
             const btn = document.getElementById('dlAllBtn');
             btn.disabled = true; btn.textContent = '打包中...';
             const zip = new JSZip();
-            for (const r of resultFiles) zip.file(r.name, XLSX.write(r.wb, { bookType: 'xlsx', type: 'array' }));
+            for (const r of resultFiles) {
+                const bytes = await buildCleanXlsx(r.wb);
+                zip.file(r.name, bytes);
+            }
             const blob = await zip.generateAsync({ type: 'blob' });
             const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: '常態活動_排除活動款_全部.zip' });
             a.click(); URL.revokeObjectURL(a.href);
