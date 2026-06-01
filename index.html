@@ -131,10 +131,31 @@
         .t4-dl-all-btn:hover { border-color: var(--accent); }
         .t4-dl-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+        /* ── Tab5: 賣場 TAG 匯入 ── */
+        .t5-upload-zone { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 22px 20px; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; position: relative; background: var(--surface); }
+        .t5-upload-zone:hover, .t5-upload-zone.dragover { background: #eeece8; border-color: var(--accent); }
+        .t5-upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .t5-file-badge { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; margin-top: 10px; font-size: 13px; }
+        .t5-file-badge .check { color: var(--green); font-size: 14px; }
+        .t5-file-badge .fname { flex: 1; font-family: var(--mono); font-size: 11px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .t5-file-badge .fcount { color: var(--muted); font-size: 11px; font-family: var(--mono); }
+        .t5-file-badge .clr { background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; padding: 0; transition: color 0.1s; }
+        .t5-file-badge .clr:hover { color: var(--accent); }
+        .t5-tag-pill { display: inline-block; background: #e8f0fe; color: #1a56db; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; margin: 2px 3px 2px 0; font-family: var(--mono); }
+        .t5-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .t5-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+        .t5-stat-card .lbl { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+        .t5-stat-card .val { font-size: 18px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+        .t5-stat-card.green .val { color: var(--green); }
+        .t5-warn { background: #fef9ec; border: 1px solid #e8d87a; border-radius: 6px; padding: 8px 12px; font-size: 11px; color: #5a4a00; margin-top: 10px; display: none; }
+        .t5-progress-track { background: var(--border); border-radius: 4px; height: 3px; overflow: hidden; margin-top: 8px; }
+        .t5-progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width .15s; border-radius: 4px; }
+        .t5-success-banner { background: #edf7ed; border: 1px solid #a3d9a5; border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #1e5c20; margin-top: 12px; display: none; font-weight: 500; }
+
         #copyPopup { position: fixed; top: 32px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 10px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 700; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; display: flex; align-items: center; gap: 8px; z-index: 999; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.18); }
         #copyPopup.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         @media (max-width: 580px) {
-            .upload-grid, .color-row, .preview-grid-4, .t4-stat-row { grid-template-columns: 1fr; }
+            .upload-grid, .color-row, .preview-grid-4, .t4-stat-row, .t5-stat-grid { grid-template-columns: 1fr; }
             .chip { font-size: 13px; padding: 8px 14px; }
             .tab-bar button { font-size: 11px; padding: 12px 4px; }
         }
@@ -152,6 +173,7 @@
             <button id="btn-tab2" onclick="openTab('tab2')">📊 Metabase 貨號字串</button>
             <button id="btn-tab3" onclick="openTab('tab3')">🖼 TOP4 商品圖</button>
             <button id="btn-tab4" onclick="openTab('tab4')">📂 常態活動排除</button>
+            <button id="btn-tab5" onclick="openTab('tab5')">🏷 賣場 TAG 匯入</button>
         </div>
         <div class="tab-body">
 
@@ -353,6 +375,70 @@
                 </div>
             </div>
 
+            <!-- Tab 5: 賣場 TAG 匯入 -->
+            <div id="tab5" class="tab-pane">
+                <div class="block">
+                    <div class="block-label">Step 01 &nbsp; 活動款式清單</div>
+                    <div class="t5-upload-zone" id="t5-act-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t5DropFile(event,'act')">
+                        <input type="file" id="t5-act-input" accept=".xlsx,.xls" onchange="t5LoadActivity(this.files[0])">
+                        <div class="t4-drop-arrow">↑</div>
+                        <div class="t4-drop-label">點擊或拖曳上傳</div>
+                        <div class="t4-drop-hint">.xlsx · .xls · 含 BarCode 欄（9碼）</div>
+                    </div>
+                    <div id="t5-act-badge" class="t5-file-badge" style="display:none;">
+                        <span class="check">✓</span>
+                        <span class="fname" id="t5-act-name"></span>
+                        <span class="fcount" id="t5-act-count"></span>
+                        <button class="clr" onclick="t5ClearAct()">×</button>
+                    </div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:var(--mono);">只需有 BarCode 欄即可，其他欄位忽略</div>
+                </div>
+
+                <div class="block">
+                    <div class="block-label">Step 02 &nbsp; 後台賣場 Excel</div>
+                    <div class="t5-upload-zone" id="t5-mkt-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t5DropFile(event,'mkt')">
+                        <input type="file" id="t5-mkt-input" accept=".xlsx,.xls" onchange="t5LoadMarket(this.files[0])">
+                        <div class="t4-drop-arrow">↑</div>
+                        <div class="t4-drop-label">點擊或拖曳上傳</div>
+                        <div class="t4-drop-hint">.xlsx · .xls · 後台下載的賣場批次</div>
+                    </div>
+                    <div id="t5-mkt-badge" class="t5-file-badge" style="display:none;">
+                        <span class="check">✓</span>
+                        <span class="fname" id="t5-mkt-name"></span>
+                        <span class="fcount" id="t5-mkt-count"></span>
+                        <button class="clr" onclick="t5ClearMkt()">×</button>
+                    </div>
+                </div>
+
+                <div class="block">
+                    <div class="block-label">Step 03 &nbsp; 輸入要綁的 TAG</div>
+                    <input type="text" id="t5-tag-input" placeholder="#2605222Q58R" oninput="t5UpdateTagPreview()">
+                    <div style="margin-top:8px;min-height:22px;">
+                        <span id="t5-tag-hint" style="font-size:11px;color:#bbb;font-family:var(--mono);">輸入後這裡會預覽 TAG</span>
+                        <span id="t5-tag-pills"></span>
+                    </div>
+                </div>
+
+                <div class="block" id="t5-match-area" style="display:none;">
+                    <div class="block-label">篩選結果</div>
+                    <div class="t5-stat-grid">
+                        <div class="t5-stat-card"><div class="lbl">賣場總筆數</div><div class="val" id="t5-s-total">0</div></div>
+                        <div class="t5-stat-card green"><div class="lbl">活動款式符合</div><div class="val" id="t5-s-match">0</div></div>
+                        <div class="t5-stat-card"><div class="lbl">預計拆成</div><div class="val" id="t5-s-parts">0</div></div>
+                    </div>
+                    <div class="t5-warn" id="t5-nomatch-warn"><span id="t5-nomatch-text"></span></div>
+                </div>
+
+                <div id="t5-progress-area" style="display:none;margin-bottom:12px;">
+                    <div style="font-size:12px;color:var(--muted);margin-bottom:4px;" id="t5-progress-text">處理中…</div>
+                    <div class="t5-progress-track"><div class="t5-progress-bar" id="t5-progress-bar"></div></div>
+                </div>
+
+                <button class="t4-run-btn" id="t5-run-btn" onclick="t5RunProcess()" disabled>✂ 綁 TAG 並下載 ZIP</button>
+
+                <div class="t5-success-banner" id="t5-done-area" id="t5-done-text"></div>
+            </div>
+
         </div>
     </div>
 
@@ -497,7 +583,6 @@
 
         /* ── Tab 4: 常態活動排除 ── */
         let promoData = null, normalFilesData = [], resultFiles = [];
-
         function xlsxReadFile(file) {
             return new Promise((resolve, reject) => {
                 const r = new FileReader();
@@ -524,10 +609,8 @@
             line.textContent = msg; box.appendChild(line); box.scrollTop = box.scrollHeight;
         }
         function fmt(n) { return n.toLocaleString(); }
-
         document.getElementById('promoFile').addEventListener('change', async e => { if (e.target.files[0]) await loadPromoFile(e.target.files[0]); });
         setupExDrop('promoDropZone', false);
-
         async function loadPromoFile(file) {
             try {
                 const { wb } = await xlsxReadFile(file);
@@ -550,16 +633,9 @@
                 checkReady();
             } catch(e) { alert('讀取失敗：' + e.message); }
         }
-        function clearPromo() {
-            promoData = null;
-            document.getElementById('promoFileInfo').innerHTML = '';
-            document.getElementById('promoFile').value = '';
-            checkReady();
-        }
-
+        function clearPromo() { promoData = null; document.getElementById('promoFileInfo').innerHTML = ''; document.getElementById('promoFile').value = ''; checkReady(); }
         document.getElementById('normalFiles').addEventListener('change', async e => { for (const f of Array.from(e.target.files)) await loadNormalFile(f); });
         setupExDrop('normalDropZone', true);
-
         async function loadNormalFile(file) {
             if (normalFilesData.find(d => d.file.name === file.name)) return;
             try {
@@ -626,59 +702,36 @@
                 if (kept.length === 0) { fullyExcluded.push(nd.file.name); xlog(`${nd.file.name}  —  全部商品須排除，不產出檔案`, 'warn'); continue; }
                 xlog(`${nd.file.name}`, 'info');
                 xlog(`  原始 ${fmt(orig)} 筆  →  排除 ${fmt(excl)} 筆  →  剩餘 ${fmt(kept.length)} 筆`);
-
-                // 直接從原始 worksheet 刪除要排除的列，保留所有格式
                 const sheetName = nd.wb.SheetNames[0];
                 const ws = nd.wb.Sheets[sheetName];
                 const range = XLSX.utils.decode_range(ws['!ref']);
-                const headerRow = nd.headerRowIdx; // 0-based
-
-                // 找出要保留的資料列（kept 已是過濾後的資料）
-                // 重建：保留 header 以上的列 + kept 的列
+                const headerRow = nd.headerRowIdx;
                 const keptSet = new Set(kept.map(r => String(r[nci] || '').trim()));
-
-                // 收集原始所有列（含header以上）
                 const newCells = {};
                 let newRowIdx = 0;
-
-                // 複製 header 以上的列（含 header）
                 for (let r = range.s.r; r <= headerRow; r++) {
                     for (let c = range.s.c; c <= range.e.c; c++) {
                         const oldAddr = XLSX.utils.encode_cell({ r, c });
                         const newAddr = XLSX.utils.encode_cell({ r: newRowIdx, c });
-                        if (ws[oldAddr]) {
-                            const cell = Object.assign({}, ws[oldAddr]);
-                            delete cell.z; // 移除 number_format，保留原始空白格式
-                            newCells[newAddr] = cell;
-                        }
+                        if (ws[oldAddr]) { const cell = Object.assign({}, ws[oldAddr]); delete cell.z; newCells[newAddr] = cell; }
                     }
                     newRowIdx++;
                 }
-
-                // 複製保留的資料列
                 for (let r = headerRow + 1; r <= range.e.r; r++) {
                     const barAddr = XLSX.utils.encode_cell({ r, c: nci });
                     const barVal = ws[barAddr] ? String(ws[barAddr].v || '').trim() : '';
-                    if (!barVal) continue;
-                    if (!keptSet.has(barVal)) continue;
+                    if (!barVal || !keptSet.has(barVal)) continue;
                     for (let c = range.s.c; c <= range.e.c; c++) {
                         const oldAddr = XLSX.utils.encode_cell({ r, c });
                         const newAddr = XLSX.utils.encode_cell({ r: newRowIdx, c });
-                        if (ws[oldAddr]) {
-                            const cell = Object.assign({}, ws[oldAddr]);
-                            delete cell.z; // 移除 number_format，保留原始空白格式
-                            newCells[newAddr] = cell;
-                        }
+                        if (ws[oldAddr]) { const cell = Object.assign({}, ws[oldAddr]); delete cell.z; newCells[newAddr] = cell; }
                     }
                     newRowIdx++;
                 }
-
-                // 更新 worksheet
                 const newWs = Object.assign({}, newCells);
                 newWs['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: range.s.c }, e: { r: newRowIdx - 1, c: range.e.c } });
                 if (ws['!cols']) newWs['!cols'] = ws['!cols'];
                 if (ws['!rows']) newWs['!rows'] = ws['!rows'];
-
                 const newWb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(newWb, newWs, sheetName);
                 resultFiles.push({ name: nd.file.name.replace(/\.xlsx?$/i, '') + '_排除活動款.xlsx', wb: newWb, excl, kept: kept.length, orig });
@@ -701,25 +754,14 @@
             document.getElementById('summarySection').classList.add('visible');
             document.getElementById('summarySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        // 產出 xlsx bytes，修正字串格式為 sharedStrings（t="s"）
         async function buildCleanXlsx(wb) {
-            // 用 SheetJS 寫出 xlsx，強制使用 sharedStrings
             const raw = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true });
             const zip = await JSZip.loadAsync(raw);
-
-            // 1. 收集所有 inline string 值，建立 sharedStrings 表
-            const sharedStrings = [];
-            const sharedMap = {};
-            function getSharedIdx(val) {
-                if (!(val in sharedMap)) { sharedMap[val] = sharedStrings.length; sharedStrings.push(val); }
-                return sharedMap[val];
-            }
-
-            // 2. 處理每個 sheet，把 t="str" 的 cell 改成 t="s"
+            const sharedStrings = [], sharedMap = {};
+            function getSharedIdx(val) { if (!(val in sharedMap)) { sharedMap[val] = sharedStrings.length; sharedStrings.push(val); } return sharedMap[val]; }
             const sheetFiles = Object.keys(zip.files).filter(f => f.match(/xl\/worksheets\/sheet\d+\.xml$/));
             for (const fname of sheetFiles) {
                 let xml = await zip.files[fname].async('string');
-                // 把 <c r="..." t="str"><v>VALUE</v></c> 換成 <c r="..." t="s"><v>IDX</v></c>
                 xml = xml.replace(/<c([^>]*)\bt="str"([^>]*)><v>([^<]*)<\/v><\/c>/g, (match, pre, post, val) => {
                     const decoded = val.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
                     const idx = getSharedIdx(decoded);
@@ -727,32 +769,16 @@
                 });
                 zip.file(fname, xml);
             }
-
-            // 3. 寫入或更新 sharedStrings.xml
             if (sharedStrings.length > 0) {
-                const ssXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sharedStrings.length}" uniqueCount="${sharedStrings.length}">${
-                    sharedStrings.map(s => `<si><t>${s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</t></si>`).join('')
-                }</sst>`;
+                const ssXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sharedStrings.length}" uniqueCount="${sharedStrings.length}">${sharedStrings.map(s => `<si><t>${s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</t></si>`).join('')}</sst>`;
                 zip.file('xl/sharedStrings.xml', ssXml);
-
-                // 確保 workbook.xml.rels 有 sharedStrings 的關聯
                 let rels = await zip.files['xl/_rels/workbook.xml.rels'].async('string');
-                if (!rels.includes('sharedStrings')) {
-                    rels = rels.replace('</Relationships>', '<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>');
-                    zip.file('xl/_rels/workbook.xml.rels', rels);
-                }
-
-                // 確保 [Content_Types].xml 有 sharedStrings 的 type
+                if (!rels.includes('sharedStrings')) { rels = rels.replace('</Relationships>', '<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>'); zip.file('xl/_rels/workbook.xml.rels', rels); }
                 let ct = await zip.files['[Content_Types].xml'].async('string');
-                if (!ct.includes('sharedStrings')) {
-                    ct = ct.replace('</Types>', '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
-                    zip.file('[Content_Types].xml', ct);
-                }
+                if (!ct.includes('sharedStrings')) { ct = ct.replace('</Types>', '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>'); zip.file('[Content_Types].xml', ct); }
             }
-
             return await zip.generateAsync({ type: 'uint8array' });
         }
-
         async function downloadOne(idx) {
             const r = resultFiles[idx];
             const bytes = await buildCleanXlsx(r.wb);
@@ -765,14 +791,137 @@
             const btn = document.getElementById('dlAllBtn');
             btn.disabled = true; btn.textContent = '打包中...';
             const zip = new JSZip();
-            for (const r of resultFiles) {
-                const bytes = await buildCleanXlsx(r.wb);
-                zip.file(r.name, bytes);
-            }
+            for (const r of resultFiles) { const bytes = await buildCleanXlsx(r.wb); zip.file(r.name, bytes); }
             const blob = await zip.generateAsync({ type: 'blob' });
             const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: '常態活動_排除活動款_全部.zip' });
             a.click(); URL.revokeObjectURL(a.href);
             btn.disabled = false; btn.textContent = '一次下載全部（ZIP）';
+        }
+
+        /* ── Tab 5: 賣場 TAG 匯入 ── */
+        const T5_CHUNK = 200;
+        const T5_TAG_COL = 9;
+        const T5_SKU_COL = 0;
+        const T5_TAG_MAX = 580;
+        let t5ActBarcodes = null, t5MarketData = null, t5MarketHeaders = null;
+
+        function t5ReadXlsx(file, cb) {
+            const r = new FileReader();
+            r.onload = e => { try { const wb = XLSX.read(e.target.result, {type:'array'}); cb(null, XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:''})); } catch(err){ cb(err); } };
+            r.readAsArrayBuffer(file);
+        }
+        function t5DropFile(e, type) {
+            e.preventDefault();
+            document.getElementById(type==='act'?'t5-act-zone':'t5-mkt-zone').classList.remove('dragover');
+            const f = e.dataTransfer.files[0];
+            if(f){ type==='act' ? t5LoadActivity(f) : t5LoadMarket(f); }
+        }
+        function t5LoadActivity(file) {
+            t5ReadXlsx(file, (err, data) => {
+                if(err){ alert('讀取失敗：'+err.message); return; }
+                const header = data[0].map(c => String(c).trim());
+                const col = Math.max(0, header.findIndex(h => /barcode|條碼|貨號/i.test(h)));
+                t5ActBarcodes = new Set(data.slice(1).map(r => String(r[col]).trim()).filter(v => v.length===9));
+                document.getElementById('t5-act-badge').style.display = 'flex';
+                document.getElementById('t5-act-name').textContent = file.name;
+                document.getElementById('t5-act-count').textContent = t5ActBarcodes.size + ' 筆';
+                t5CheckReady();
+            });
+        }
+        function t5LoadMarket(file) {
+            t5ReadXlsx(file, (err, data) => {
+                if(err){ alert('讀取失敗：'+err.message); return; }
+                t5MarketHeaders = data[0];
+                t5MarketData = data.slice(1).filter(r => r.some(c => c !== ''));
+                document.getElementById('t5-mkt-badge').style.display = 'flex';
+                document.getElementById('t5-mkt-name').textContent = file.name;
+                document.getElementById('t5-mkt-count').textContent = t5MarketData.length + ' 筆';
+                t5CheckReady();
+            });
+        }
+        function t5ClearAct() { t5ActBarcodes=null; document.getElementById('t5-act-badge').style.display='none'; document.getElementById('t5-act-input').value=''; t5CheckReady(); }
+        function t5ClearMkt() { t5MarketData=null; t5MarketHeaders=null; document.getElementById('t5-mkt-badge').style.display='none'; document.getElementById('t5-mkt-input').value=''; t5CheckReady(); }
+
+        function t5ParseTags(raw) { return raw.split('#').map(s=>s.trim()).filter(s=>s.length>0).map(s=>'#'+s); }
+        function t5GetTags() { const raw = document.getElementById('t5-tag-input').value.trim(); return raw ? t5ParseTags(raw) : []; }
+
+        function t5UpdateTagPreview() {
+            const raw = document.getElementById('t5-tag-input').value.trim();
+            const pills = document.getElementById('t5-tag-pills');
+            const hint = document.getElementById('t5-tag-hint');
+            if(!raw){ pills.innerHTML=''; hint.style.display='inline'; t5CheckReady(); return; }
+            hint.style.display='none';
+            pills.innerHTML = t5ParseTags(raw).map(t=>`<span class="t5-tag-pill">${t}</span>`).join('');
+            t5CheckReady();
+        }
+
+        function t5CheckReady() {
+            const tags = t5GetTags();
+            const canRun = t5ActBarcodes && t5MarketData && tags.length > 0;
+            document.getElementById('t5-run-btn').disabled = !canRun;
+            if(!canRun){ document.getElementById('t5-match-area').style.display='none'; return; }
+            const matched = t5MarketData.filter(r => t5ActBarcodes.has(String(r[T5_SKU_COL]).trim()));
+            const noMatch = [...t5ActBarcodes].filter(b => !t5MarketData.some(r => String(r[T5_SKU_COL]).trim()===b));
+            document.getElementById('t5-match-area').style.display='block';
+            document.getElementById('t5-s-total').textContent = t5MarketData.length.toLocaleString();
+            document.getElementById('t5-s-match').textContent = matched.length.toLocaleString();
+            document.getElementById('t5-s-parts').textContent = Math.ceil(matched.length/T5_CHUNK);
+            const warn = document.getElementById('t5-nomatch-warn');
+            if(noMatch.length > 0){ warn.style.display='block'; document.getElementById('t5-nomatch-text').textContent = '⚠ 活動清單中有 '+noMatch.length+' 筆貨號在賣場 Excel 找不到：'+noMatch.slice(0,5).join('、')+(noMatch.length>5?'…等':''); }
+            else warn.style.display='none';
+        }
+
+        function t5AddTagsWithLimit(existing, newTags) {
+            const existingStr = existing ? String(existing).trim() : '';
+            const existingTags = existingStr.split('#').map(s=>s.trim()).filter(s=>s.length>0).map(s=>'#'+s);
+            const newTagsFiltered = newTags.filter(t => !existingTags.includes(t));
+            let tags = [...newTagsFiltered, ...existingTags];
+            while(tags.join('').length > T5_TAG_MAX && tags.length > newTagsFiltered.length) tags.pop();
+            return tags.join('');
+        }
+
+        async function t5RunProcess() {
+            const tags = t5GetTags();
+            if(!tags.length || !t5ActBarcodes || !t5MarketData) return;
+            const matched = t5MarketData.filter(r => t5ActBarcodes.has(String(r[T5_SKU_COL]).trim()));
+            if(matched.length===0){ alert('沒有符合活動款式的賣場資料。'); return; }
+            const parts = Math.ceil(matched.length/T5_CHUNK);
+            document.getElementById('t5-progress-area').style.display='block';
+            document.getElementById('t5-run-btn').disabled=true;
+            document.getElementById('t5-done-area').style.display='none';
+            let trimmedCount = 0;
+            const taggedRows = matched.map(r => {
+                const row = [...r];
+                const original = String(row[T5_TAG_COL]||'').trim();
+                const result = t5AddTagsWithLimit(original, tags);
+                if(result.length < (tags.join('')+original).length) trimmedCount++;
+                row[T5_TAG_COL] = result;
+                return row;
+            });
+            const zip = new JSZip();
+            for(let i=0; i<parts; i++){
+                const slice = taggedRows.slice(i*T5_CHUNK, (i+1)*T5_CHUNK);
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([t5MarketHeaders, ...slice]);
+                XLSX.utils.book_append_sheet(wb, ws, '賣場批次');
+                const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+                zip.file(`賣場匯入_第${i+1}份_共${parts}份.xlsx`, buf);
+                document.getElementById('t5-progress-bar').style.width = Math.round((i+1)/parts*100)+'%';
+                document.getElementById('t5-progress-text').textContent = `產生中… 第 ${i+1} / ${parts} 份`;
+                await new Promise(r=>setTimeout(r,0));
+            }
+            document.getElementById('t5-progress-text').textContent = '壓縮打包中…';
+            const blob = await zip.generateAsync({type:'blob'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href=url; a.download=`賣場匯入_${tags[0].replace('#','')}_共${parts}份.zip`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            document.getElementById('t5-progress-area').style.display='none';
+            document.getElementById('t5-run-btn').disabled=false;
+            const done = document.getElementById('t5-done-area');
+            done.style.display='block';
+            done.textContent = `✓ 完成！${matched.length} 筆拆成 ${parts} 份，ZIP 已下載。` + (trimmedCount>0 ? `（${trimmedCount} 筆超過 580 字元，已自動刪除末尾舊 TAG）`:'');
         }
     </script>
 </body>
