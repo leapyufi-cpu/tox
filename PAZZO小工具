@@ -871,6 +871,7 @@
             else warn.style.display='none';
         }
 
+        // 清除 SheetJS 把 \r 轉成的 _x000d_ 字串
         function t5AddTagsWithLimit(existing, newTags) {
             const existingStr = existing ? String(existing).trim() : '';
             const existingTags = existingStr.split('#').map(s=>s.trim()).filter(s=>s.length>0).map(s=>'#'+s);
@@ -878,6 +879,32 @@
             let tags = [...newTagsFiltered, ...existingTags];
             while(tags.join('').length > T5_TAG_MAX && tags.length > newTagsFiltered.length) tags.pop();
             return tags.join('');
+        }
+
+        // 修正 SheetJS 產出的 xlsx：t="str" → t="s" sharedStrings，並清除 _x000d_
+        async function t5FixXlsx(arrayBuf) {
+            const zip = await JSZip.loadAsync(arrayBuf);
+            let sheetXml = await zip.files['xl/worksheets/sheet1.xml'].async('string');
+            const ss = [], ssMap = {};
+            const decX = s => s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/_x000d_/gi,'');
+            const encX = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const idx = val => { if(!(val in ssMap)){ ssMap[val]=ss.length; ss.push(val); } return ssMap[val]; };
+            sheetXml = sheetXml.replace(
+                /<c([^>]*?)t="str"([^>]*)>\s*<v[^>]*>([\s\S]*?)<\/v>\s*<\/c>/g,
+                (m, pre, post, raw) => {
+                    const val = decX(raw);
+                    const attrs = (pre+' '+post).replace(/t="str"/g,'').replace(/xml:space="preserve"/g,'').trim();
+                    return `<c ${attrs} t="s"><v>${idx(val)}</v></c>`;
+                }
+            );
+            zip.file('xl/worksheets/sheet1.xml', sheetXml);
+            const ssXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${ss.length}" uniqueCount="${ss.length}">${ss.map(s=>`<si><t${/[\r\n]/.test(s)?' xml:space="preserve"':''}>${encX(s)}</t></si>`).join('')}</sst>`;
+            zip.file('xl/sharedStrings.xml', ssXml);
+            let rels = await zip.files['xl/_rels/workbook.xml.rels'].async('string');
+            if(!rels.includes('sharedStrings')){ rels=rels.replace('</Relationships>','<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>'); zip.file('xl/_rels/workbook.xml.rels',rels); }
+            let ct = await zip.files['[Content_Types].xml'].async('string');
+            if(!ct.includes('sharedStrings')){ ct=ct.replace('</Types>','<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>'); zip.file('[Content_Types].xml',ct); }
+            return await zip.generateAsync({type:'uint8array'});
         }
 
         async function t5RunProcess() {
@@ -898,20 +925,22 @@
                 row[T5_TAG_COL] = result;
                 return row;
             });
-            const zip = new JSZip();
+            const outerZip = new JSZip();
             for(let i=0; i<parts; i++){
                 const slice = taggedRows.slice(i*T5_CHUNK, (i+1)*T5_CHUNK);
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet([t5MarketHeaders, ...slice]);
                 XLSX.utils.book_append_sheet(wb, ws, '賣場批次');
-                const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-                zip.file(`賣場匯入_第${i+1}份_共${parts}份.xlsx`, buf);
+                const rawBuf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+                // 修正格式：t="str" → t="s" sharedStrings，清除 _x000d_
+                const fixedBuf = await t5FixXlsx(rawBuf);
+                outerZip.file(`賣場匯入_第${i+1}份_共${parts}份.xlsx`, fixedBuf);
                 document.getElementById('t5-progress-bar').style.width = Math.round((i+1)/parts*100)+'%';
                 document.getElementById('t5-progress-text').textContent = `產生中… 第 ${i+1} / ${parts} 份`;
                 await new Promise(r=>setTimeout(r,0));
             }
             document.getElementById('t5-progress-text').textContent = '壓縮打包中…';
-            const blob = await zip.generateAsync({type:'blob'});
+            const blob = await outerZip.generateAsync({type:'blob'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href=url; a.download=`賣場匯入_${tags[0].replace('#','')}_共${parts}份.zip`;
@@ -921,7 +950,7 @@
             document.getElementById('t5-run-btn').disabled=false;
             const done = document.getElementById('t5-done-area');
             done.style.display='block';
-            done.textContent = `✓ 完成！${matched.length} 筆拆成 ${parts} 份，ZIP 已下載。` + (trimmedCount>0 ? `（${trimmedCount} 筆超過 580 字元，已自動刪除末尾舊 TAG）`:'');
+            done.textContent = `✓ 完成！${matched.length} 筆拆成 ${parts} 份，ZIP 已下載。` + (trimmedCount>0?`（${trimmedCount} 筆超過 580 字元，已自動刪除末尾舊 TAG）`:'');
         }
     </script>
 </body>
