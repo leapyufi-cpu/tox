@@ -1,957 +1,717 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <title>品牌工作小助手 ✨</title>
-    <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f916.png" type="image/png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --bg: #f5f4f2; --surface: #ffffff; --border: #e0ddd8; --border2: #ccc9c3;
-            --accent: #1a1a1a; --accent-light: #444; --muted: #666; --green: #4a7c59;
-            --mono: 'DM Mono', monospace;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--accent); font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; padding: 40px 24px 80px; }
-        .page-wrap { max-width: 680px; margin: 0 auto; }
-        .page-header { margin-bottom: 28px; }
-        .page-header .brand { font-family: var(--mono); font-size: 12px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
-        .page-header h1 { font-size: 22px; font-weight: 700; color: var(--accent); }
-        .tab-bar { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px 10px 0 0; overflow: hidden; }
-        .tab-bar button { flex: 1; padding: 14px 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); background: transparent; border: none; border-right: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
-        .tab-bar button:last-child { border-right: none; }
-        .tab-bar button:hover { color: var(--accent); background: var(--bg); }
-        .tab-bar button.active { color: var(--accent); font-weight: 700; background: var(--surface); border-bottom: 2px solid var(--accent); }
-        .tab-body { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; padding: 28px 28px 32px; }
-        .tab-pane { display: none; }
-        .tab-pane.active { display: block; }
-        .block { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 12px; }
-        .block-label { font-family: var(--mono); font-size: 13px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; font-weight: 700; }
-        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .chip { padding: 9px 20px; border: 1.5px solid var(--border2); background: var(--surface); color: var(--accent-light); border-radius: 7px; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.15s; }
-        .chip:hover { border-color: var(--accent); color: var(--accent); }
-        .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
-        textarea, input[type="text"] { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; color: var(--accent); background: var(--surface); outline: none; transition: border-color 0.15s; resize: vertical; }
-        textarea:focus, input[type="text"]:focus { border-color: var(--accent); }
-        textarea::placeholder, input[type="text"]::placeholder { color: #bbb; }
-        .input-sub { margin-top: 6px; font-size: 12px; color: var(--muted); font-family: var(--mono); }
-        .output-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; min-height: 72px; font-size: 13px; color: var(--accent-light); line-height: 1.7; word-break: break-all; font-family: var(--mono); }
-        .output-placeholder { color: #ccc; }
-        .action-row { display: flex; gap: 8px; margin-top: 12px; }
-        .primary-btn { flex: 1; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; letter-spacing: 1px; }
-        .primary-btn:hover { opacity: 0.8; }
-        .secondary-btn { padding: 12px 20px; background: transparent; color: var(--muted); border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
-        .secondary-btn:hover { border-color: var(--accent); color: var(--accent); }
-        .hint-box { margin-top: 14px; padding: 12px 14px; background: var(--bg); border-radius: 8px; font-size: 12px; color: var(--muted); line-height: 1.7; }
-        .hint-box a { color: #2563eb; text-decoration: underline; font-weight: 500; }
-        .color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-        .color-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
-        .color-item-label { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
-        .color-chips { display: flex; gap: 8px; align-items: center; }
-        .color-chip { width: 30px; height: 30px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; position: relative; flex-shrink: 0; }
-        .black-chip { background: #000107; }
-        .white-chip { background: #ffffff; border: 2px solid var(--border2); }
-        .color-chip.active::after { content: ''; position: absolute; inset: -4px; border: 2px solid #4a90d9; border-radius: 8px; }
-        .color-chip-label { font-size: 12px; color: var(--accent-light); font-weight: 500; }
-        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .upload-slot-label { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
-        .upload-area { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 22px 12px; text-align: center; cursor: pointer; transition: all 0.15s; position: relative; background: var(--surface); min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-        .upload-area:hover, .upload-area.drag-over { border-color: var(--accent); background: #eeece8; }
-        .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
-        .upload-area.has-image { border-style: solid; border-color: var(--green); }
-        .upload-area.has-image .upload-placeholder { display: none; }
-        .upload-area.has-image .t4-thumb-wrap { display: flex; }
-        .t4-thumb-wrap { display: none; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; width: 100%; }
-        .t4-thumb { width: 100%; height: 80px; object-fit: cover; border-radius: 5px; }
-        .thumb-done { font-size: 11px; color: var(--green); font-family: var(--mono); font-weight: 500; }
-        .upload-icon { font-size: 18px; margin-bottom: 6px; color: var(--muted); }
-        .upload-text { font-size: 13px; font-weight: 500; color: var(--accent-light); margin-bottom: 2px; }
-        .upload-sub-s { font-size: 11px; color: #bbb; font-family: var(--mono); }
-        .upload-status { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--muted); flex-wrap: wrap; }
-        .t4-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); display: inline-block; transition: background 0.3s; flex-shrink: 0; }
-        .t4-dot.done { background: var(--green); }
-        .preview-section { display: none; }
-        .preview-section.show { display: block; }
-        .preview-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .preview-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
-        .t4-canvas { border-radius: 6px; border: 1px solid var(--border); max-width: 100%; display: block; }
-        .dl-btn-t3 { display: block; width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 7px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; text-align: center; margin-top: 7px; }
-        .dl-btn-t3:hover { opacity: 0.75; }
-        .reset-btn { display: block; width: 100%; padding: 10px; background: transparent; color: var(--muted); border: 1.5px solid var(--border2); border-radius: 7px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-top: 10px; }
-        .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✦ 少做一點</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✦%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0f2f5;--surface:#ffffff;--border:#e2e6ed;--border2:#c8cfd9;
+  --text:#1a1f2e;--muted:#5a6478;--faint:#9ba5b7;
+  --accent:#2563eb;--accent-hover:#1d4ed8;--accent-light:#eff6ff;--accent-text:#1e40af;
+  --green:#1a7f4b;
+  --mono:'DM Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;}
 
-        /* ── Tab4: 常態活動排除 ── */
-        .t4-drop-zone { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 28px 20px; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; position: relative; background: var(--surface); }
-        .t4-drop-zone:hover, .t4-drop-zone.dragover { background: #eeece8; border-color: var(--accent); }
-        .t4-drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-        .t4-drop-arrow { width: 26px; height: 26px; margin: 0 auto 8px; border: 1.5px solid var(--muted); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); }
-        .t4-drop-label { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 3px; }
-        .t4-drop-hint { font-size: 11px; color: #bbb; font-family: var(--mono); }
-        .t4-file-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
-        .t4-file-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
-        .t4-file-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-        .t4-file-name { flex: 1; font-family: var(--mono); font-size: 11px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .t4-file-rows { font-size: 11px; color: var(--muted); flex-shrink: 0; }
-        .t4-remove-btn { background: none; border: none; color: #bbb; cursor: pointer; font-size: 13px; padding: 0; line-height: 1; flex-shrink: 0; transition: color 0.1s; }
-        .t4-remove-btn:hover { color: var(--accent); }
-        .t4-col-found { margin-top: 6px; font-size: 11px; color: var(--muted); font-family: var(--mono); padding-left: 2px; }
-        .t4-hint-text { font-size: 12px; color: var(--muted); margin-bottom: 12px; display: none; }
-        .t4-run-btn { width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
-        .t4-run-btn:hover:not(:disabled) { opacity: 0.8; }
-        .t4-run-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .t4-log-wrap { margin-top: 12px; display: none; }
-        .t4-log-wrap.visible { display: block; }
-        .t4-warn-banner { background: #fef9ec; border: 1px solid #e8d87a; border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #5a4a00; line-height: 1.7; margin-bottom: 8px; display: none; }
-        .t4-warn-banner strong { font-weight: 700; }
-        .t4-log-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; font-family: var(--mono); font-size: 11px; line-height: 1.8; max-height: 200px; overflow-y: auto; color: var(--muted); }
-        .t4-log-line { color: var(--muted); }
-        .t4-log-line.info { color: var(--accent); }
-        .t4-log-line.warn { color: #8a6800; }
-        .t4-log-line.error { color: #c0392b; }
-        .t4-log-line.success { color: var(--accent); font-weight: 700; }
-        .t4-log-line.divider { color: var(--border2); }
-        .t4-summary { display: none; margin-top: 12px; }
-        .t4-summary.visible { display: block; }
-        .t4-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-        .t4-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 12px; text-align: center; }
-        .t4-stat-num { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--accent); line-height: 1; margin-bottom: 4px; }
-        .t4-stat-label { font-size: 11px; color: var(--muted); }
-        .t4-result-block { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
-        .t4-result-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-        .t4-result-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
-        .t4-res-name { flex: 1; font-family: var(--mono); font-size: 11px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .t4-res-stat { font-size: 11px; color: var(--muted); flex-shrink: 0; }
-        .t4-res-tag { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 3px; background: #eeece8; color: var(--muted); flex-shrink: 0; }
-        .t4-dl-btn { padding: 5px 12px; background: var(--accent); color: white; border: none; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s; flex-shrink: 0; }
-        .t4-dl-btn:hover { opacity: 0.75; }
-        .t4-dl-all-btn { width: 100%; padding: 11px; background: transparent; color: var(--accent); border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-        .t4-dl-all-btn:hover { border-color: var(--accent); }
-        .t4-dl-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+/* ── HOME ── */
+#home{display:flex;flex-direction:column;min-height:100vh;padding:60px 24px 80px;}
+.home-inner{max-width:700px;margin:0 auto;width:100%;}
+.home-title{font-size:28px;font-weight:700;letter-spacing:-.03em;margin-bottom:6px;color:var(--text);}
+.home-sub{font-size:14px;color:var(--muted);margin-bottom:48px;}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.tool-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 22px;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:flex;flex-direction:column;gap:10px;text-align:left;}
+.tool-card:hover{border-color:var(--accent);box-shadow:0 2px 16px rgba(13,110,253,.10);}
+.tool-card.wide{grid-column:span 2;border-left:3px solid var(--accent);}
+.tool-icon{font-size:22px;line-height:1;}
+.tool-name{font-size:15px;font-weight:700;letter-spacing:-.01em;}
+.tool-desc{font-size:12px;color:var(--muted);line-height:1.6;}
 
-        /* ── Tab5: 賣場 TAG 匯入 ── */
-        .t5-upload-zone { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 22px 20px; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; position: relative; background: var(--surface); }
-        .t5-upload-zone:hover, .t5-upload-zone.dragover { background: #eeece8; border-color: var(--accent); }
-        .t5-upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-        .t5-file-badge { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; margin-top: 10px; font-size: 13px; }
-        .t5-file-badge .check { color: var(--green); font-size: 14px; }
-        .t5-file-badge .fname { flex: 1; font-family: var(--mono); font-size: 11px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .t5-file-badge .fcount { color: var(--muted); font-size: 11px; font-family: var(--mono); }
-        .t5-file-badge .clr { background: none; border: none; color: #bbb; cursor: pointer; font-size: 14px; padding: 0; transition: color 0.1s; }
-        .t5-file-badge .clr:hover { color: var(--accent); }
-        .t5-tag-pill { display: inline-block; background: #e8f0fe; color: #1a56db; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; margin: 2px 3px 2px 0; font-family: var(--mono); }
-        .t5-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-        .t5-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
-        .t5-stat-card .lbl { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
-        .t5-stat-card .val { font-size: 18px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
-        .t5-stat-card.green .val { color: var(--green); }
-        .t5-warn { background: #fef9ec; border: 1px solid #e8d87a; border-radius: 6px; padding: 8px 12px; font-size: 11px; color: #5a4a00; margin-top: 10px; display: none; }
-        .t5-progress-track { background: var(--border); border-radius: 4px; height: 3px; overflow: hidden; margin-top: 8px; }
-        .t5-progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width .15s; border-radius: 4px; }
-        .t5-success-banner { background: #edf7ed; border: 1px solid #a3d9a5; border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #1e5c20; margin-top: 12px; display: none; font-weight: 500; }
+/* ── TOOL PAGE ── */
+#tool-page{display:none;min-height:100vh;flex-direction:column;}
+.tool-header{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10;}
+.back-btn{background:none;border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--muted);cursor:pointer;transition:all .15s;}
+.back-btn:hover{color:var(--accent);border-color:var(--accent);}
+.tool-header-title{font-size:16px;font-weight:700;letter-spacing:-.01em;}
+.tool-content{max-width:680px;margin:0 auto;padding:28px 24px 80px;width:100%;}
 
-        #copyPopup { position: fixed; top: 32px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 10px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 700; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; display: flex; align-items: center; gap: 8px; z-index: 999; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.18); }
-        #copyPopup.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        @media (max-width: 580px) {
-            .upload-grid, .color-row, .preview-grid-4, .t4-stat-row, .t5-stat-grid { grid-template-columns: 1fr; }
-            .chip { font-size: 13px; padding: 8px 14px; }
-            .tab-bar button { font-size: 11px; padding: 12px 4px; }
-        }
-    </style>
+/* ── BLOCKS ── */
+.block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:12px;}
+.block-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin-bottom:14px;font-weight:500;}
+.drop-zone{border:1.5px dashed var(--border2);border-radius:8px;padding:24px 16px;text-align:center;cursor:pointer;transition:background .15s,border-color .15s;position:relative;background:var(--surface);}
+.drop-zone:hover,.drop-zone.dragover{background:var(--accent-light);border-color:var(--accent);}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-arrow{width:24px;height:24px;margin:0 auto 8px;border:1.5px solid var(--faint);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--faint);}
+.drop-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.drop-hint{font-size:11px;color:var(--faint);font-family:var(--mono);}
+.file-badge{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:12px;}
+.file-badge .ck{color:var(--green);font-size:14px;}
+.file-badge .fn{flex:1;font-family:var(--mono);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+.file-badge .fc{color:var(--faint);font-size:11px;font-family:var(--mono);}
+.file-badge .xb{background:none;border:none;cursor:pointer;color:var(--faint);font-size:15px;padding:0;line-height:1;}
+.file-badge .xb:hover{color:var(--text);}
+.hint-note{font-size:11px;color:var(--faint);margin-top:7px;font-family:var(--mono);}
+
+/* inputs */
+textarea,input[type=text]{width:100%;padding:11px 14px;border:1.5px solid var(--border2);border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s;resize:vertical;}
+textarea:focus,input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(13,110,253,.12);}
+textarea::placeholder,input[type=text]::placeholder{color:var(--faint);}
+
+/* buttons */
+.run-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Noto Sans TC',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;letter-spacing:.02em;}
+.run-btn:hover:not(:disabled){background:var(--accent-hover);}
+.run-btn:disabled{opacity:.3;cursor:not-allowed;}
+.sec-btn{width:100%;padding:11px;background:transparent;color:var(--muted);border:1.5px solid var(--border2);border-radius:10px;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;margin-top:8px;}
+.sec-btn:hover{border-color:var(--text);color:var(--text);}
+
+/* chips */
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{padding:8px 18px;border:1.5px solid var(--border2);background:var(--surface);color:var(--muted);border-radius:8px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:500;transition:all .15s;}
+.chip:hover{border-color:var(--text);color:var(--text);}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* output */
+.output-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:13px 15px;min-height:68px;font-size:13px;color:var(--muted);line-height:1.7;word-break:break-all;font-family:var(--mono);}
+.output-ph{color:var(--faint);}
+.action-row{display:flex;gap:8px;margin-top:12px;}
+.primary-btn{flex:1;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;}
+.primary-btn:hover{background:var(--accent-hover);}
+.ghost-btn{padding:11px 18px;background:transparent;color:var(--muted);border:1.5px solid var(--border2);border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;}
+.ghost-btn:hover{border-color:var(--text);color:var(--text);}
+.hint-box{margin-top:12px;padding:11px 14px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.7;}
+.hint-box a{color:#2563eb;text-decoration:underline;}
+
+/* stats */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.stat-card{background:var(--bg);border-radius:8px;padding:10px 12px;border:1px solid var(--border);}
+.stat-card .lbl{font-size:11px;color:var(--faint);margin-bottom:2px;}
+.stat-card .val{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--text);}
+.stat-card.green .val{color:var(--accent);}
+.warn-box{background:#fef9ec;border:1px solid #e8d87a;border-radius:8px;padding:8px 12px;font-size:11px;color:#5a4a00;margin-top:10px;display:none;}
+.success-box{background:#edf7ed;border:1px solid #a3d9a5;border-radius:8px;padding:10px 14px;font-size:12px;color:#1e5c20;margin-top:12px;display:none;font-weight:500;}
+
+/* progress */
+.prog-wrap{margin-bottom:12px;display:none;}
+.prog-label{font-size:12px;color:var(--muted);margin-bottom:5px;}
+.prog-track{background:var(--border);border-radius:4px;height:3px;overflow:hidden;}
+.prog-bar{height:100%;background:var(--accent);width:0%;transition:width .15s;border-radius:4px;}
+
+/* tag pills */
+.tag-pill{display:inline-block;background:var(--accent-light);color:var(--accent-text);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;margin:2px 3px 2px 0;font-family:var(--mono);}
+
+/* log */
+.log-wrap{margin-top:12px;display:none;}
+.log-wrap.show{display:block;}
+.warn-banner{background:#fef9ec;border:1px solid #e8d87a;border-radius:6px;padding:10px 14px;font-size:12px;color:#5a4a00;line-height:1.7;margin-bottom:8px;display:none;}
+.log-box{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.8;max-height:200px;overflow-y:auto;color:var(--muted);}
+.ll{color:var(--muted);}
+.ll.info{color:var(--text);}
+.ll.warn{color:#8a6800;}
+.ll.error{color:#c0392b;}
+.ll.success{color:var(--text);font-weight:700;}
+.ll.divider{color:var(--border2);}
+
+/* result list */
+.result-block{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-top:12px;}
+.result-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.result-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;}
+.ri-name{flex:1;font-family:var(--mono);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ri-stat{font-size:11px;color:var(--muted);}
+.ri-tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;background:#eeece8;color:var(--muted);}
+.ri-dl{padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:opacity .15s;}
+.ri-dl:hover{opacity:.75;}
+.dl-all-btn{width:100%;padding:11px;background:transparent;color:var(--text);border:1.5px solid var(--border2);border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+.dl-all-btn:hover{border-color:var(--text);}
+.dl-all-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* tab toggle (for TAG tool) */
+.seg{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;padding:3px;gap:3px;}
+.seg button{flex:1;padding:9px;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:500;color:var(--muted);background:transparent;border:none;cursor:pointer;transition:all .15s;border-radius:7px;}
+.seg button.active{background:var(--accent);color:#fff;font-weight:700;border-radius:8px;}
+
+/* TOP4 */
+.color-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.color-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.color-item-label{font-size:13px;font-weight:700;margin-bottom:10px;}
+.color-chips{display:flex;gap:8px;align-items:center;}
+.color-chip{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s;position:relative;flex-shrink:0;}
+.black-chip{background:#000107;}
+.white-chip{background:#fff;border:2px solid var(--border2);}
+.color-chip.active::after{content:'';position:absolute;inset:-4px;border:2px solid #4a90d9;border-radius:8px;}
+.color-chip-label{font-size:12px;color:var(--muted);}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.upload-slot-label{font-size:13px;font-weight:700;margin-bottom:6px;}
+.upload-area{border:1.5px dashed var(--border2);border-radius:8px;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;position:relative;background:var(--surface);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
+.upload-area:hover,.upload-area.drag-over{border-color:var(--text);background:var(--bg);}
+.upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2;}
+.upload-area.has-image{border-style:solid;border-color:var(--green);}
+.upload-area.has-image .upload-placeholder{display:none;}
+.upload-area.has-image .thumb-wrap{display:flex;}
+.thumb-wrap{display:none;flex-direction:column;align-items:center;gap:5px;pointer-events:none;width:100%;}
+.t4-thumb{width:100%;height:76px;object-fit:cover;border-radius:5px;}
+.thumb-done{font-size:11px;color:var(--green);font-family:var(--mono);font-weight:500;}
+.upload-status{display:flex;align-items:center;gap:8px;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-wrap:wrap;}
+.t4-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);display:inline-block;transition:background .3s;flex-shrink:0;}
+.t4-dot.done{background:var(--accent);}
+.preview-section{display:none;}
+.preview-section.show{display:block;}
+.preview-grid-4{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.preview-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;}
+.t4-canvas{border-radius:6px;border:1px solid var(--border);max-width:100%;display:block;}
+.dl-btn-t3{display:block;width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;text-align:center;margin-top:10px;}
+.dl-btn-t3:hover{opacity:.75;}
+
+
+.new-badge{display:inline-block;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:var(--mono);letter-spacing:.06em;vertical-align:middle;margin-left:6px;line-height:1.6;}
+/* copy popup */
+#copyPopup{position:fixed;top:32px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--accent);color:#fff;padding:12px 24px;border-radius:10px;font-family:'Noto Sans TC',sans-serif;font-size:14px;font-weight:700;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.18);}
+#copyPopup.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(max-width:580px){
+  .tool-grid{grid-template-columns:1fr;}
+  .tool-card.wide{grid-column:span 1;}
+  .upload-grid,.color-row,.preview-grid-4,.stat-grid{grid-template-columns:1fr;}
+  .home-title{font-size:22px;}
+}
+</style>
 </head>
 <body>
-    <div id="copyPopup">✓ 已複製</div>
-    <div class="page-wrap">
-        <div class="page-header">
-            <div class="brand">Brand Tools</div>
-            <h1>品牌工作小助手</h1>
-        </div>
-        <div class="tab-bar">
-            <button id="btn-tab1" onclick="openTab('tab1')" class="active">🔗 綁貨號連結</button>
-            <button id="btn-tab2" onclick="openTab('tab2')">📊 Metabase 貨號字串</button>
-            <button id="btn-tab3" onclick="openTab('tab3')">🖼 TOP4 商品圖</button>
-            <button id="btn-tab4" onclick="openTab('tab4')">📂 常態活動排除</button>
-            <button id="btn-tab5" onclick="openTab('tab5')">🏷 賣場 TAG 匯入</button>
-        </div>
-        <div class="tab-body">
+<div id="copyPopup">✓ 已複製</div>
 
-            <!-- Tab 1 -->
-            <div id="tab1" class="tab-pane active">
-                <div class="block">
-                    <div class="block-label">選擇品牌</div>
-                    <div class="btn-row">
-                        <button class="chip active" onclick="selectBrand(this,'https://www.pazzo.com.tw')">PAZZO</button>
-                        <button class="chip" onclick="selectBrand(this,'https://www.meierq.com')">Meierq</button>
-                        <button class="chip" onclick="selectBrand(this,'https://www.mercci22.com')">mercci22</button>
-                    </div>
-                </div>
-                <div class="block">
-                    <div class="block-label">貼上 Excel 貨號</div>
-                    <textarea id="skuInput1" rows="5" placeholder="請在此貼上 Excel 貨號..." oninput="processTab1()"></textarea>
-                </div>
-                <div class="block">
-                    <div class="block-label">組合完成的網址</div>
-                    <div id="longUrlDisplay" class="output-box"><span class="output-placeholder">等待輸入資料...</span></div>
-                    <div class="action-row">
-                        <button class="primary-btn" onclick="copyOutput('longUrlDisplay')">複製完整網址</button>
-                        <button class="secondary-btn" onclick="clearTab(1)">清空</button>
-                    </div>
-                    <div class="hint-box">
-                        助手小提示：將組合網址貼到【品牌用】UTM產生器 + 短網址服務<br>
-                        <a href="https://tpx.tw/s/brand" target="_blank">https://tpx.tw/s/brand</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 2 -->
-            <div id="tab2" class="tab-pane">
-                <div class="block">
-                    <div class="block-label">貼上 Excel 貨號</div>
-                    <textarea id="skuInput2" rows="7" placeholder="直接在此貼上貨號列表..." oninput="processTab2()"></textarea>
-                </div>
-                <div class="block">
-                    <div class="block-label">Metabase 專用格式（逗號分隔）</div>
-                    <div id="metabaseDisplay" class="output-box"><span class="output-placeholder">等待輸入資料...</span></div>
-                    <div class="action-row">
-                        <button class="primary-btn" onclick="copyOutput('metabaseDisplay')">複製貨號串</button>
-                        <button class="secondary-btn" onclick="clearTab(2)">清空</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 3 -->
-            <div id="tab3" class="tab-pane">
-                <div class="block">
-                    <div class="block-label">排名</div>
-                    <div class="btn-row">
-                        <button class="chip active" data-top="1">TOP 1</button>
-                        <button class="chip" data-top="2">TOP 2</button>
-                        <button class="chip" data-top="3">TOP 3</button>
-                        <button class="chip" data-top="4">TOP 4</button>
-                    </div>
-                    <div class="color-row">
-                        <div class="color-item">
-                            <div class="color-item-label">商品平拍 · TOP 文字色</div>
-                            <div class="color-chips">
-                                <div class="color-chip black-chip active" data-target="item" data-color="black"></div>
-                                <div class="color-chip white-chip" data-target="item" data-color="white"></div>
-                                <span class="color-chip-label" id="itemColorLabel">黑色</span>
-                            </div>
-                        </div>
-                        <div class="color-item">
-                            <div class="color-item-label">麻豆照 · TOP 文字色</div>
-                            <div class="color-chips">
-                                <div class="color-chip black-chip active" data-target="model" data-color="black"></div>
-                                <div class="color-chip white-chip" data-target="model" data-color="white"></div>
-                                <span class="color-chip-label" id="modelColorLabel">黑色</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="block">
-                    <div class="block-label">商品名稱</div>
-                    <input type="text" id="productName" placeholder="例：磨毛立領雙拉鍊針織上衣外套" maxlength="30">
-                    <div class="input-sub">最多 30 字，輸入後即時更新預覽</div>
-                </div>
-                <div class="block">
-                    <div class="block-label">上傳商品圖</div>
-                    <div class="upload-grid">
-                        <div>
-                            <div class="upload-slot-label">商品平拍</div>
-                            <div class="upload-area" id="uploadArea1">
-                                <input type="file" id="fileInput1" accept="image/*">
-                                <div class="upload-placeholder">
-                                    <div class="upload-icon">⬆</div>
-                                    <div class="upload-text">商品平拍</div>
-                                    <div class="upload-sub-s">點擊或拖拉上傳</div>
-                                </div>
-                                <div class="t4-thumb-wrap">
-                                    <img class="t4-thumb" id="thumb1" src="" alt="">
-                                    <div class="thumb-done">已上傳</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="upload-slot-label">麻豆照</div>
-                            <div class="upload-area" id="uploadArea0">
-                                <input type="file" id="fileInput0" accept="image/*">
-                                <div class="upload-placeholder">
-                                    <div class="upload-icon">⬆</div>
-                                    <div class="upload-text">麻豆照</div>
-                                    <div class="upload-sub-s">點擊或拖拉上傳</div>
-                                </div>
-                                <div class="t4-thumb-wrap">
-                                    <img class="t4-thumb" id="thumb0" src="" alt="">
-                                    <div class="thumb-done">已上傳</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="upload-status">
-                        <span class="t4-dot" id="dot1"></span> 商品平拍
-                        <span style="color:var(--border2)">·</span>
-                        <span class="t4-dot" id="dot0"></span> 麻豆照
-                        <span style="color:var(--border2)">— 兩張都上傳後顯示預覽</span>
-                    </div>
-                </div>
-                <div class="block preview-section" id="previewSection">
-                    <div class="block-label">預覽 · 下載</div>
-                    <div class="preview-grid-4">
-                        <div class="preview-card">
-                            <div class="preview-label">平拍 · PC</div>
-                            <canvas class="t4-canvas" id="canvas-item-pc"></canvas>
-                        </div>
-                        <div class="preview-card">
-                            <div class="preview-label">平拍 · Mobile</div>
-                            <canvas class="t4-canvas" id="canvas-item-mb"></canvas>
-                        </div>
-                        <div class="preview-card">
-                            <div class="preview-label">麻豆照 · PC</div>
-                            <canvas class="t4-canvas" id="canvas-model-pc"></canvas>
-                        </div>
-                        <div class="preview-card">
-                            <div class="preview-label">麻豆照 · Mobile</div>
-                            <canvas class="t4-canvas" id="canvas-model-mb"></canvas>
-                        </div>
-                    </div>
-                    <button class="dl-btn-t3" id="dlAllBtnT3" style="margin-top:14px;" onclick="downloadAllT3()">下載全部 4 張 (.zip)</button>
-                    <button class="reset-btn" id="resetBtn">重新開始</button>
-                </div>
-            </div>
-
-            <!-- Tab 4 -->
-            <div id="tab4" class="tab-pane">
-                <div class="block">
-                    <div class="block-label">活動款式清單</div>
-                    <div class="t4-drop-zone" id="promoDropZone">
-                        <input type="file" id="promoFile" accept=".xlsx,.xls,.csv" />
-                        <div class="t4-drop-arrow">↑</div>
-                        <div class="t4-drop-label">點擊或拖曳上傳</div>
-                        <div class="t4-drop-hint">.xlsx · .xls · .csv</div>
-                    </div>
-                    <div id="promoFileInfo" class="t4-file-list"></div>
-                </div>
-                <div class="block">
-                    <div class="block-label">常態活動清單（可一次上傳多個）</div>
-                    <div class="t4-drop-zone" id="normalDropZone">
-                        <input type="file" id="normalFiles" accept=".xlsx,.xls,.csv" multiple />
-                        <div class="t4-drop-arrow">↑</div>
-                        <div class="t4-drop-label">點擊或拖曳上傳</div>
-                        <div class="t4-drop-hint">.xlsx · .xls · .csv</div>
-                    </div>
-                    <div id="normalFileList" class="t4-file-list"></div>
-                </div>
-                <div class="block">
-                    <div class="block-label">產出</div>
-                    <div class="t4-hint-text" id="readyHint"></div>
-                    <button class="t4-run-btn" id="runBtn" disabled onclick="runProcess()">開始排除並產出檔案</button>
-                    <div class="t4-log-wrap" id="logWrap">
-                        <div id="warnBanner" class="t4-warn-banner"></div>
-                        <div class="t4-log-box" id="logBox"></div>
-                    </div>
-                </div>
-                <div class="t4-summary" id="summarySection">
-                    <div class="t4-stat-row">
-                        <div class="t4-stat-card">
-                            <div class="t4-stat-num" id="statPromo">0</div>
-                            <div class="t4-stat-label">活動款式數量</div>
-                        </div>
-                        <div class="t4-stat-card">
-                            <div class="t4-stat-num" id="statFiles">0</div>
-                            <div class="t4-stat-label">常態活動檔案數</div>
-                        </div>
-                        <div class="t4-stat-card">
-                            <div class="t4-stat-num" id="statTotal">0</div>
-                            <div class="t4-stat-label">總排除筆數</div>
-                        </div>
-                    </div>
-                    <div class="t4-result-block" id="resultSection">
-                        <div class="block-label" style="margin-bottom:12px;">下載檔案</div>
-                        <div class="t4-result-list" id="resultList"></div>
-                        <button class="t4-dl-all-btn" id="dlAllBtn" onclick="downloadAll()">一次下載全部（ZIP）</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 5: 賣場 TAG 匯入 -->
-            <div id="tab5" class="tab-pane">
-                <div class="block">
-                    <div class="block-label">Step 01 &nbsp; 活動款式清單</div>
-                    <div class="t5-upload-zone" id="t5-act-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t5DropFile(event,'act')">
-                        <input type="file" id="t5-act-input" accept=".xlsx,.xls" onchange="t5LoadActivity(this.files[0])">
-                        <div class="t4-drop-arrow">↑</div>
-                        <div class="t4-drop-label">點擊或拖曳上傳</div>
-                        <div class="t4-drop-hint">.xlsx · .xls · 含 BarCode 欄（9碼）</div>
-                    </div>
-                    <div id="t5-act-badge" class="t5-file-badge" style="display:none;">
-                        <span class="check">✓</span>
-                        <span class="fname" id="t5-act-name"></span>
-                        <span class="fcount" id="t5-act-count"></span>
-                        <button class="clr" onclick="t5ClearAct()">×</button>
-                    </div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:var(--mono);">只需有 BarCode 欄即可，其他欄位忽略</div>
-                </div>
-
-                <div class="block">
-                    <div class="block-label">Step 02 &nbsp; 後台賣場 Excel</div>
-                    <div class="t5-upload-zone" id="t5-mkt-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t5DropFile(event,'mkt')">
-                        <input type="file" id="t5-mkt-input" accept=".xlsx,.xls" onchange="t5LoadMarket(this.files[0])">
-                        <div class="t4-drop-arrow">↑</div>
-                        <div class="t4-drop-label">點擊或拖曳上傳</div>
-                        <div class="t4-drop-hint">.xlsx · .xls · 後台下載的賣場批次</div>
-                    </div>
-                    <div id="t5-mkt-badge" class="t5-file-badge" style="display:none;">
-                        <span class="check">✓</span>
-                        <span class="fname" id="t5-mkt-name"></span>
-                        <span class="fcount" id="t5-mkt-count"></span>
-                        <button class="clr" onclick="t5ClearMkt()">×</button>
-                    </div>
-                </div>
-
-                <div class="block">
-                    <div class="block-label">Step 03 &nbsp; 輸入要綁的 TAG</div>
-                    <input type="text" id="t5-tag-input" placeholder="#2605222Q58R" oninput="t5UpdateTagPreview()">
-                    <div style="margin-top:8px;min-height:22px;">
-                        <span id="t5-tag-hint" style="font-size:11px;color:#bbb;font-family:var(--mono);">輸入後這裡會預覽 TAG</span>
-                        <span id="t5-tag-pills"></span>
-                    </div>
-                </div>
-
-                <div class="block" id="t5-match-area" style="display:none;">
-                    <div class="block-label">篩選結果</div>
-                    <div class="t5-stat-grid">
-                        <div class="t5-stat-card"><div class="lbl">賣場總筆數</div><div class="val" id="t5-s-total">0</div></div>
-                        <div class="t5-stat-card green"><div class="lbl">活動款式符合</div><div class="val" id="t5-s-match">0</div></div>
-                        <div class="t5-stat-card"><div class="lbl">預計拆成</div><div class="val" id="t5-s-parts">0</div></div>
-                    </div>
-                    <div class="t5-warn" id="t5-nomatch-warn"><span id="t5-nomatch-text"></span></div>
-                </div>
-
-                <div id="t5-progress-area" style="display:none;margin-bottom:12px;">
-                    <div style="font-size:12px;color:var(--muted);margin-bottom:4px;" id="t5-progress-text">處理中…</div>
-                    <div class="t5-progress-track"><div class="t5-progress-bar" id="t5-progress-bar"></div></div>
-                </div>
-
-                <button class="t4-run-btn" id="t5-run-btn" onclick="t5RunProcess()" disabled>✂ 綁 TAG 並下載 ZIP</button>
-
-                <div class="t5-success-banner" id="t5-done-area" id="t5-done-text"></div>
-            </div>
-
-        </div>
+<!-- HOME -->
+<div id="home">
+  <div class="home-inner">
+    <div style="margin-bottom:40px;">
+      <h1 class="home-title">✦ 少做一點</h1>
+      <p class="home-sub">選擇要使用的工具 &nbsp;·&nbsp; 不定時更新</p>
     </div>
+    <div class="tool-grid">
+      <div class="tool-card" onclick="openTool('t1')">
+        <div class="tool-name">綁貨號連結</div>
+        <div class="tool-desc">貼上貨號，快速組合品牌商品頁網址</div>
+      </div>
+      <div class="tool-card" onclick="openTool('t2')">
+        <div class="tool-name">Metabase 貨號字串</div>
+        <div class="tool-desc">將貨號轉成 Metabase 查詢用的逗號格式</div>
+      </div>
+      <div class="tool-card" onclick="openTool('t3')">
+        <div class="tool-name">TOP4 商品圖</div>
+        <div class="tool-desc">上傳商品照片，自動產出四種尺寸的 TOP 標示圖</div>
+      </div>
+      <div class="tool-card" onclick="openTool('t4')">
+        <div class="tool-name">常態活動排除</div>
+        <div class="tool-desc">從常態活動檔案中排除本次活動款式</div>
+      </div>
+      <div class="tool-card wide" onclick="openTool('t5')">
+        <div class="tool-name">賣場 TAG 匯入 <span class="new-badge">NEW</span></div>
+        <div class="tool-desc">篩選活動款式、綁 TAG、拆分 200 筆下載，支援手動輸入與分類總表兩種模式</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <script>
-        /* ── Tab ── */
-        function openTab(id) {
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            document.getElementById('btn-' + id).classList.add('active');
-        }
+<!-- TOOL PAGE -->
+<div id="tool-page">
+  <div class="tool-header">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <div class="tool-header-title" id="tool-header-title"></div>
+  </div>
+  <div class="tool-content" id="tool-content"></div>
+</div>
 
-        /* ── Copy Popup ── */
-        let popupTimer;
-        function showCopyPopup() {
-            const p = document.getElementById('copyPopup');
-            p.classList.add('show');
-            clearTimeout(popupTimer);
-            popupTimer = setTimeout(() => p.classList.remove('show'), 1800);
-        }
-        function copyOutput(id) {
-            const text = document.getElementById(id).innerText.trim();
-            if (!text || text.includes('等待輸入')) return;
-            navigator.clipboard.writeText(text).then(showCopyPopup);
-        }
+<!-- TEMPLATES -->
+<template id="tpl-t1">
+<div class="block">
+  <div class="block-label">選擇品牌</div>
+  <div class="chip-row">
+    <button class="chip active" onclick="selectBrand(this,'https://www.pazzo.com.tw')">PAZZO</button>
+    <button class="chip" onclick="selectBrand(this,'https://www.meierq.com')">Meierq</button>
+    <button class="chip" onclick="selectBrand(this,'https://www.mercci22.com')">mercci22</button>
+  </div>
+</div>
+<div class="block">
+  <div class="block-label">貼上 Excel 貨號</div>
+  <textarea id="skuInput1" rows="5" placeholder="請在此貼上 Excel 貨號..." oninput="processTab1()"></textarea>
+</div>
+<div class="block">
+  <div class="block-label">組合完成的網址</div>
+  <div id="longUrlDisplay" class="output-box"><span class="output-ph">等待輸入資料...</span></div>
+  <div class="action-row">
+    <button class="primary-btn" onclick="copyOutput('longUrlDisplay')">複製完整網址</button>
+    <button class="ghost-btn" onclick="clearTab(1)">清空</button>
+  </div>
+  <div class="hint-box">助手小提示：將組合網址貼到【品牌用】UTM產生器 + 短網址服務<br><a href="https://tpx.tw/s/brand" target="_blank">https://tpx.tw/s/brand</a></div>
+</div>
+</template>
 
-        /* ── Tab 1 ── */
-        const MATCH_PARAM = '/match?barcode=';
-        let selectedBrandUrl = 'https://www.pazzo.com.tw';
-        function selectBrand(btn, url) {
-            selectedBrandUrl = url;
-            document.querySelectorAll('[onclick^="selectBrand"]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('skuInput1').value = '';
-            document.getElementById('longUrlDisplay').innerHTML = '<span class="output-placeholder">等待輸入資料...</span>';
-        }
-        function cleanSkus(text) {
-            if (!text) return '';
-            let items = text.split(/[\n,\t]+/).map(s => s.trim()).filter(s => s && !s.includes('http'));
-            if (items.length === 1 && items[0].length > 12) {
-                const raw = items[0]; items = [];
-                for (let i = 0; i < raw.length; i += 12) { const c = raw.slice(i, i+12); if (c.length === 12) items.push(c); }
-            }
-            return items.map(item => item.includes('barcode=') ? item.split('barcode=')[1] : item).join(',');
-        }
-        function processTab1() {
-            const skus = cleanSkus(document.getElementById('skuInput1').value);
-            const el = document.getElementById('longUrlDisplay');
-            el.innerHTML = skus ? selectedBrandUrl.replace(/\/$/, '') + MATCH_PARAM + skus : '<span class="output-placeholder">等待輸入資料...</span>';
-        }
-        function processTab2() {
-            const skus = cleanSkus(document.getElementById('skuInput2').value);
-            document.getElementById('metabaseDisplay').innerHTML = skus ? skus : '<span class="output-placeholder">等待輸入資料...</span>';
-        }
-        function clearTab(n) {
-            document.getElementById('skuInput' + n).value = '';
-            if (n === 1) processTab1(); else processTab2();
-        }
+<template id="tpl-t2">
+<div class="block">
+  <div class="block-label">貼上 Excel 貨號</div>
+  <textarea id="skuInput2" rows="7" placeholder="直接在此貼上貨號列表..." oninput="processTab2()"></textarea>
+</div>
+<div class="block">
+  <div class="block-label">Metabase 專用格式（逗號分隔）</div>
+  <div id="metabaseDisplay" class="output-box"><span class="output-ph">等待輸入資料...</span></div>
+  <div class="action-row">
+    <button class="primary-btn" onclick="copyOutput('metabaseDisplay')">複製貨號串</button>
+    <button class="ghost-btn" onclick="clearTab(2)">清空</button>
+  </div>
+</div>
+</template>
 
-        /* ── Tab 3 ── */
-        const SPECS = {
-            pc: { frame: { w: 640, h: 875 }, tops: { 1: { imgLeft: 108, imgTop: 0, imgW: 531, imgH: 760, topX: 128 }, 2: { imgLeft: 72, imgTop: 0, imgW: 531, imgH: 760, topX: 92 }, 3: { imgLeft: 37, imgTop: 0, imgW: 531, imgH: 760, topX: 57 }, 4: { imgLeft: 1, imgTop: 0, imgW: 531, imgH: 760, topX: 21 } }, topLabel: { topY: 12, fontSize: 25, lineHeight: 35, fontWeight: '500', letterSpacing: 0.02 }, nameLabel: { cy: 783, fontSize: 20, fontWeight: '500', letterSpacing: -0.01 } },
-            mb: { frame: { w: 400, h: 522 }, tops: { 1: { imgLeft: 64, imgTop: 0, imgW: 325, imgH: 465, topX: 79 }, 2: { imgLeft: 11, imgTop: 0, imgW: 325, imgH: 465, topX: 26 }, 3: { imgLeft: 64, imgTop: 0, imgW: 325, imgH: 465, topX: 79 }, 4: { imgLeft: 11, imgTop: 0, imgW: 325, imgH: 465, topX: 26 } }, topLabel: { topY: 9, fontSize: 15, lineHeight: 21, fontWeight: '500', letterSpacing: 0.02 }, nameLabel: { cy: 482, fontSize: 16, fontWeight: '500', letterSpacing: -0.01 } }
-        };
-        let currentTop = 1, topColors = { model: '#000107', item: '#000107' }, t4images = [null, null];
-        function getDateStr() { const d = new Date(); return String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0'); }
-        function drawToCanvas(canvas, img, device, colorKey) {
-            const dev = SPECS[device], t = dev.tops[currentTop], f = dev.frame, tl = dev.topLabel, nl = dev.nameLabel;
-            const name = document.getElementById('productName').value.trim();
-            const maxW = Math.min(270, Math.floor((window.innerWidth - 140) / 2));
-            const scale = canvas._fullSize ? 1 : Math.min(1, maxW / f.w);
-            const ctx = canvas.getContext('2d');
-            canvas.width = Math.round(f.w * scale); canvas.height = Math.round(f.h * scale);
-            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            if (img) {
-                const ir = img.naturalWidth / img.naturalHeight, br = t.imgW / t.imgH;
-                let sw, sh, sx, sy;
-                if (ir > br) { sh = img.naturalHeight; sw = sh * br; sy = 0; sx = (img.naturalWidth - sw) / 2; }
-                else { sw = img.naturalWidth; sh = sw / br; sx = 0; sy = (img.naturalHeight - sh) / 2; }
-                ctx.save(); ctx.beginPath(); ctx.rect(t.imgLeft*scale, t.imgTop*scale, t.imgW*scale, t.imgH*scale); ctx.clip();
-                ctx.drawImage(img, sx, sy, sw, sh, t.imgLeft*scale, t.imgTop*scale, t.imgW*scale, t.imgH*scale); ctx.restore();
-            }
-            ctx.save(); ctx.font = `${tl.fontWeight} ${tl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`; ctx.fillStyle = topColors[colorKey]; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.letterSpacing = (tl.letterSpacing * tl.fontSize * scale) + 'px';
-            ctx.fillText('TOP' + currentTop, t.topX*scale, (tl.topY + tl.lineHeight/2)*scale); ctx.restore();
-            if (name) { ctx.save(); ctx.font = `${nl.fontWeight} ${nl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`; ctx.fillStyle = '#000'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'; ctx.letterSpacing = (nl.letterSpacing * nl.fontSize * scale) + 'px'; ctx.fillText(name, (t.imgLeft + t.imgW/2)*scale, nl.cy*scale); ctx.restore(); }
-        }
-        function renderPreviews() {
-            if (!t4images[0] || !t4images[1]) return;
-            drawToCanvas(document.getElementById('canvas-item-pc'), t4images[1], 'pc', 'item');
-            drawToCanvas(document.getElementById('canvas-item-mb'), t4images[1], 'mb', 'item');
-            drawToCanvas(document.getElementById('canvas-model-pc'), t4images[0], 'pc', 'model');
-            drawToCanvas(document.getElementById('canvas-model-mb'), t4images[0], 'mb', 'model');
-            document.getElementById('previewSection').classList.add('show');
-            setTimeout(() => document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-        }
-        async function downloadAllT3() {
-            const btn = document.getElementById('dlAllBtnT3');
-            btn.textContent = '壓縮中...'; btn.disabled = true;
-            const tasks = [{ img: t4images[1], device: 'pc', colorKey: 'item', suffix: 'item_pc' }, { img: t4images[1], device: 'mb', colorKey: 'item', suffix: 'item_mb' }, { img: t4images[0], device: 'pc', colorKey: 'model', suffix: 'model_pc' }, { img: t4images[0], device: 'mb', colorKey: 'model', suffix: 'model_mb' }];
-            const zip = new JSZip();
-            for (const task of tasks) { const c = document.createElement('canvas'); c._fullSize = true; drawToCanvas(c, task.img, task.device, task.colorKey); const blob = await new Promise(r => c.toBlob(r, 'image/png')); zip.file(`TOP${currentTop}_${getDateStr()}_${task.suffix}.png`, blob); }
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            const url = URL.createObjectURL(zipBlob);
-            const a = document.createElement('a'); a.href = url; a.download = `TOP${currentTop}_${getDateStr()}.zip`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 2000);
-            btn.textContent = '下載全部 4 張 (.zip)'; btn.disabled = false;
-        }
-        function t4LoadImage(file, idx) {
-            return new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onload = e => { const img = new Image(); img.onload = () => { t4images[idx] = img; document.getElementById('thumb' + idx).src = e.target.result; document.getElementById('uploadArea' + idx).classList.add('has-image'); document.getElementById('dot' + idx).classList.add('done'); resolve(); }; img.src = e.target.result; };
-                reader.readAsDataURL(file);
-            });
-        }
-        [0, 1].forEach(idx => {
-            const input = document.getElementById('fileInput' + idx), area = document.getElementById('uploadArea' + idx);
-            input.addEventListener('change', async e => { if (!e.target.files[0]) return; await t4LoadImage(e.target.files[0], idx); renderPreviews(); });
-            area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
-            area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
-            area.addEventListener('drop', async e => { e.preventDefault(); area.classList.remove('drag-over'); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith('image/')) { await t4LoadImage(file, idx); renderPreviews(); } });
-        });
-        document.querySelectorAll('[data-top]').forEach(btn => btn.addEventListener('click', () => {
-            currentTop = parseInt(btn.dataset.top);
-            document.querySelectorAll('[data-top]').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderPreviews();
-        }));
-        document.querySelectorAll('.color-chip').forEach(chip => chip.addEventListener('click', () => {
-            const target = chip.dataset.target, color = chip.dataset.color;
-            topColors[target] = color === 'white' ? '#ffffff' : '#000107';
-            document.querySelectorAll('.color-chip[data-target="' + target + '"]').forEach(c => c.classList.remove('active')); chip.classList.add('active');
-            document.getElementById(target === 'item' ? 'itemColorLabel' : 'modelColorLabel').textContent = color === 'white' ? '白色' : '黑色'; renderPreviews();
-        }));
-        document.getElementById('productName').addEventListener('input', () => renderPreviews());
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            t4images = [null, null];
-            [0, 1].forEach(i => { document.getElementById('uploadArea' + i).classList.remove('has-image'); document.getElementById('thumb' + i).src = ''; document.getElementById('dot' + i).classList.remove('done'); document.getElementById('fileInput' + i).value = ''; });
-            document.getElementById('productName').value = '';
-            topColors = { model: '#000107', item: '#000107' };
-            ['item','model'].forEach(target => { document.querySelectorAll('.color-chip[data-target="' + target + '"]').forEach(c => c.classList.remove('active')); document.querySelector('.color-chip[data-target="' + target + '"][data-color="black"]').classList.add('active'); });
-            document.getElementById('itemColorLabel').textContent = '黑色'; document.getElementById('modelColorLabel').textContent = '黑色';
-            document.getElementById('previewSection').classList.remove('show');
-        });
+<template id="tpl-t3">
+<div class="block">
+  <div class="block-label">排名</div>
+  <div class="chip-row">
+    <button class="chip active" data-top="1">TOP 1</button>
+    <button class="chip" data-top="2">TOP 2</button>
+    <button class="chip" data-top="3">TOP 3</button>
+    <button class="chip" data-top="4">TOP 4</button>
+  </div>
+  <div class="color-row">
+    <div class="color-item">
+      <div class="color-item-label">商品平拍 · TOP 文字色</div>
+      <div class="color-chips">
+        <div class="color-chip black-chip active" data-target="item" data-color="black"></div>
+        <div class="color-chip white-chip" data-target="item" data-color="white"></div>
+        <span class="color-chip-label" id="itemColorLabel">黑色</span>
+      </div>
+    </div>
+    <div class="color-item">
+      <div class="color-item-label">麻豆照 · TOP 文字色</div>
+      <div class="color-chips">
+        <div class="color-chip black-chip active" data-target="model" data-color="black"></div>
+        <div class="color-chip white-chip" data-target="model" data-color="white"></div>
+        <span class="color-chip-label" id="modelColorLabel">黑色</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="block">
+  <div class="block-label">商品名稱</div>
+  <input type="text" id="productName" placeholder="例：磨毛立領雙拉鍊針織上衣外套" maxlength="30">
+  <div class="hint-note">最多 30 字，輸入後即時更新預覽</div>
+</div>
+<div class="block">
+  <div class="block-label">上傳商品圖</div>
+  <div class="upload-grid">
+    <div>
+      <div class="upload-slot-label">商品平拍</div>
+      <div class="upload-area" id="uploadArea1">
+        <input type="file" id="fileInput1" accept="image/*">
+        <div class="upload-placeholder"><div style="font-size:18px;color:var(--faint);margin-bottom:6px;">⬆</div><div style="font-size:13px;font-weight:500;color:var(--muted);">商品平拍</div><div style="font-size:11px;color:var(--faint);">點擊或拖拉上傳</div></div>
+        <div class="thumb-wrap"><img class="t4-thumb" id="thumb1" src="" alt=""><div class="thumb-done">已上傳</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="upload-slot-label">麻豆照</div>
+      <div class="upload-area" id="uploadArea0">
+        <input type="file" id="fileInput0" accept="image/*">
+        <div class="upload-placeholder"><div style="font-size:18px;color:var(--faint);margin-bottom:6px;">⬆</div><div style="font-size:13px;font-weight:500;color:var(--muted);">麻豆照</div><div style="font-size:11px;color:var(--faint);">點擊或拖拉上傳</div></div>
+        <div class="thumb-wrap"><img class="t4-thumb" id="thumb0" src="" alt=""><div class="thumb-done">已上傳</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="upload-status">
+    <span class="t4-dot" id="dot1"></span> 商品平拍
+    <span style="color:var(--border2)">·</span>
+    <span class="t4-dot" id="dot0"></span> 麻豆照
+    <span style="color:var(--border2)">— 兩張都上傳後顯示預覽</span>
+  </div>
+</div>
+<div class="block preview-section" id="previewSection">
+  <div class="block-label">預覽 · 下載</div>
+  <div class="preview-grid-4">
+    <div><div class="preview-label">平拍 · PC</div><canvas class="t4-canvas" id="canvas-item-pc"></canvas></div>
+    <div><div class="preview-label">平拍 · Mobile</div><canvas class="t4-canvas" id="canvas-item-mb"></canvas></div>
+    <div><div class="preview-label">麻豆照 · PC</div><canvas class="t4-canvas" id="canvas-model-pc"></canvas></div>
+    <div><div class="preview-label">麻豆照 · Mobile</div><canvas class="t4-canvas" id="canvas-model-mb"></canvas></div>
+  </div>
+  <button class="dl-btn-t3" id="dlAllBtnT3" onclick="downloadAllT3()">下載全部 4 張 (.zip)</button>
+  <button class="sec-btn" id="resetBtn">重新開始</button>
+</div>
+</template>
 
-        /* ── Tab 4: 常態活動排除 ── */
-        let promoData = null, normalFilesData = [], resultFiles = [];
-        function xlsxReadFile(file) {
-            return new Promise((resolve, reject) => {
-                const r = new FileReader();
-                r.onload = e => { try { resolve({ wb: XLSX.read(e.target.result, { type: 'array', cellDates: true, cellStyles: true }), raw: e.target.result }); } catch(err) { reject(err); } };
-                r.onerror = reject; r.readAsArrayBuffer(file);
-            });
-        }
-        function xlsxGetRows(wb) { return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' }); }
-        function findHeaderRow(rows) {
-            const kw = ['商品編號', 'sku', 'barcode', '品名', '售價', '檔期', '庫存', '銷量', '活動'];
-            for (let i = 0; i < Math.min(10, rows.length); i++) {
-                const cells = rows[i].map(c => String(c || '').trim().toLowerCase());
-                const nonempty = cells.filter(c => c !== '');
-                if (!nonempty.length) continue;
-                if (cells.some(c => kw.some(k => c.includes(k)))) return i;
-                if (nonempty.length === 1 && nonempty[0].length < 30 && !nonempty[0].includes('\n')) return i;
-            }
-            return 0;
-        }
-        function xlog(msg, type = '') {
-            const box = document.getElementById('logBox');
-            const line = document.createElement('div');
-            line.className = 't4-log-line' + (type ? ' ' + type : '');
-            line.textContent = msg; box.appendChild(line); box.scrollTop = box.scrollHeight;
-        }
-        function fmt(n) { return n.toLocaleString(); }
-        document.getElementById('promoFile').addEventListener('change', async e => { if (e.target.files[0]) await loadPromoFile(e.target.files[0]); });
-        setupExDrop('promoDropZone', false);
-        async function loadPromoFile(file) {
-            try {
-                const { wb } = await xlsxReadFile(file);
-                const rows = xlsxGetRows(wb);
-                const hi = findHeaderRow(rows);
-                const headers = rows[hi];
-                const dataRows = rows.slice(hi + 1).filter(r => r.some(c => c !== ''));
-                let ci = headers.findIndex(h => String(h || '').trim() === 'BarCode (9碼)(必填)');
-                if (ci < 0) ci = headers.findIndex(h => String(h || '').trim().includes('商品編號'));
-                promoData = { file, wb, headers, rows: dataRows, headerRowIdx: hi, colIdx: ci };
-                const colName = ci >= 0 ? headers[ci] : null;
-                document.getElementById('promoFileInfo').innerHTML = `
-                    <div class="t4-file-item">
-                        <span class="t4-file-dot"></span>
-                        <span class="t4-file-name">${file.name}</span>
-                        <span class="t4-file-rows">${fmt(dataRows.length)} 筆</span>
-                        <button class="t4-remove-btn" onclick="clearPromo()">✕</button>
-                    </div>
-                    <div class="t4-col-found">${colName ? '比對欄位：' + colName : '找不到 BarCode 欄位，請確認檔案格式'}</div>`;
-                checkReady();
-            } catch(e) { alert('讀取失敗：' + e.message); }
-        }
-        function clearPromo() { promoData = null; document.getElementById('promoFileInfo').innerHTML = ''; document.getElementById('promoFile').value = ''; checkReady(); }
-        document.getElementById('normalFiles').addEventListener('change', async e => { for (const f of Array.from(e.target.files)) await loadNormalFile(f); });
-        setupExDrop('normalDropZone', true);
-        async function loadNormalFile(file) {
-            if (normalFilesData.find(d => d.file.name === file.name)) return;
-            try {
-                const { wb } = await xlsxReadFile(file);
-                const rows = xlsxGetRows(wb);
-                const hi = findHeaderRow(rows);
-                const headers = rows[hi];
-                const dataRows = rows.slice(hi + 1).filter(r => r.some(c => c !== ''));
-                let ci = headers.findIndex(h => String(h || '').trim() === 'BarCode (9碼)(必填)');
-                if (ci < 0) ci = headers.findIndex(h => String(h || '').trim().includes('商品編號'));
-                normalFilesData.push({ file, wb, headers, rows: dataRows, headerRowIdx: hi, colIdx: ci });
-                renderNormalList(); checkReady();
-            } catch(e) { alert('讀取 ' + file.name + ' 失敗：' + e.message); }
-        }
-        function removeNormalFile(idx) { normalFilesData.splice(idx, 1); renderNormalList(); checkReady(); }
-        function renderNormalList() {
-            document.getElementById('normalFileList').innerHTML = normalFilesData.map((d, i) => `
-                <div class="t4-file-item">
-                    <span class="t4-file-dot"></span>
-                    <span class="t4-file-name">${d.file.name}</span>
-                    <span class="t4-file-rows">${fmt(d.rows.length)} 筆</span>
-                    <button class="t4-remove-btn" onclick="removeNormalFile(${i})">✕</button>
-                </div>`).join('');
-        }
-        function setupExDrop(zoneId, multiple) {
-            const zone = document.getElementById(zoneId);
-            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-            zone.addEventListener('drop', async e => {
-                e.preventDefault(); zone.classList.remove('dragover');
-                const files = Array.from(e.dataTransfer.files).filter(f => /\.(xlsx|xls|csv)$/i.test(f.name));
-                if (!files.length) return;
-                if (!multiple) await loadPromoFile(files[0]); else for (const f of files) await loadNormalFile(f);
-            });
-        }
-        function checkReady() {
-            const ready = promoData && normalFilesData.length > 0;
-            document.getElementById('runBtn').disabled = !ready;
-            const hint = document.getElementById('readyHint');
-            if (!promoData && !normalFilesData.length) { hint.textContent = '請先上傳活動款式清單與常態活動檔案'; hint.style.display = 'block'; }
-            else if (!promoData) { hint.textContent = '已上傳常態活動，請上傳活動款式清單'; hint.style.display = 'block'; }
-            else if (!normalFilesData.length) { hint.textContent = '已上傳活動款式，請上傳常態活動檔案'; hint.style.display = 'block'; }
-            else hint.style.display = 'none';
-        }
-        function runProcess() {
-            const logBox = document.getElementById('logBox'), warnBanner = document.getElementById('warnBanner');
-            logBox.innerHTML = ''; warnBanner.style.display = 'none';
-            document.getElementById('logWrap').classList.add('visible');
-            resultFiles = [];
-            const pci = promoData.colIdx;
-            if (pci < 0) { xlog('活動款式清單找不到 BarCode 欄位，請確認檔案格式', 'error'); return; }
-            const promoSet = new Set();
-            for (const row of promoData.rows) { const v = String(row[pci] || '').trim(); if (v) promoSet.add(v); }
-            xlog(`活動款式：${fmt(promoSet.size)} 個商品`, 'info');
-            xlog(`常態活動檔案：${normalFilesData.length} 個`, 'info');
-            xlog('─'.repeat(44), 'divider');
-            let totalExcluded = 0; const fullyExcluded = [];
-            for (const nd of normalFilesData) {
-                const nci = nd.colIdx;
-                if (nci < 0) { xlog(`${nd.file.name}  —  找不到 BarCode 欄位，略過`, 'warn'); continue; }
-                const orig = nd.rows.length;
-                const kept = nd.rows.filter(row => !promoSet.has(String(row[nci] || '').trim()));
-                const excl = orig - kept.length; totalExcluded += excl;
-                if (kept.length === 0) { fullyExcluded.push(nd.file.name); xlog(`${nd.file.name}  —  全部商品須排除，不產出檔案`, 'warn'); continue; }
-                xlog(`${nd.file.name}`, 'info');
-                xlog(`  原始 ${fmt(orig)} 筆  →  排除 ${fmt(excl)} 筆  →  剩餘 ${fmt(kept.length)} 筆`);
-                const sheetName = nd.wb.SheetNames[0];
-                const ws = nd.wb.Sheets[sheetName];
-                const range = XLSX.utils.decode_range(ws['!ref']);
-                const headerRow = nd.headerRowIdx;
-                const keptSet = new Set(kept.map(r => String(r[nci] || '').trim()));
-                const newCells = {};
-                let newRowIdx = 0;
-                for (let r = range.s.r; r <= headerRow; r++) {
-                    for (let c = range.s.c; c <= range.e.c; c++) {
-                        const oldAddr = XLSX.utils.encode_cell({ r, c });
-                        const newAddr = XLSX.utils.encode_cell({ r: newRowIdx, c });
-                        if (ws[oldAddr]) { const cell = Object.assign({}, ws[oldAddr]); delete cell.z; newCells[newAddr] = cell; }
-                    }
-                    newRowIdx++;
-                }
-                for (let r = headerRow + 1; r <= range.e.r; r++) {
-                    const barAddr = XLSX.utils.encode_cell({ r, c: nci });
-                    const barVal = ws[barAddr] ? String(ws[barAddr].v || '').trim() : '';
-                    if (!barVal || !keptSet.has(barVal)) continue;
-                    for (let c = range.s.c; c <= range.e.c; c++) {
-                        const oldAddr = XLSX.utils.encode_cell({ r, c });
-                        const newAddr = XLSX.utils.encode_cell({ r: newRowIdx, c });
-                        if (ws[oldAddr]) { const cell = Object.assign({}, ws[oldAddr]); delete cell.z; newCells[newAddr] = cell; }
-                    }
-                    newRowIdx++;
-                }
-                const newWs = Object.assign({}, newCells);
-                newWs['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: range.s.c }, e: { r: newRowIdx - 1, c: range.e.c } });
-                if (ws['!cols']) newWs['!cols'] = ws['!cols'];
-                if (ws['!rows']) newWs['!rows'] = ws['!rows'];
-                const newWb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(newWb, newWs, sheetName);
-                resultFiles.push({ name: nd.file.name.replace(/\.xlsx?$/i, '') + '_排除活動款.xlsx', wb: newWb, excl, kept: kept.length, orig });
-            }
-            xlog('─'.repeat(44), 'divider');
-            xlog(`完成　共排除 ${fmt(totalExcluded)} 筆`, 'success');
-            if (fullyExcluded.length > 0) { warnBanner.style.display = 'block'; warnBanner.innerHTML = `<strong>注意：以下 ${fullyExcluded.length} 個常態活動的商品全部須排除，不須產出新檔案</strong><br>` + fullyExcluded.map(n => `&nbsp;&nbsp;${n}`).join('<br>'); }
-            document.getElementById('statPromo').textContent = fmt(promoSet.size);
-            document.getElementById('statFiles').textContent = normalFilesData.length;
-            document.getElementById('statTotal').textContent = fmt(totalExcluded);
-            document.getElementById('resultList').innerHTML = resultFiles.map((r, i) => `
-                <div class="t4-result-item">
-                    <span class="t4-file-dot"></span>
-                    <span class="t4-res-name">${r.name}</span>
-                    <span class="t4-res-stat">${fmt(r.kept)} 筆</span>
-                    <span class="t4-res-tag">-${fmt(r.excl)}</span>
-                    <button class="t4-dl-btn" onclick="downloadOne(${i})">下載</button>
-                </div>`).join('');
-            document.getElementById('resultSection').style.display = resultFiles.length > 0 ? 'block' : 'none';
-            document.getElementById('summarySection').classList.add('visible');
-            document.getElementById('summarySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        async function buildCleanXlsx(wb) {
-            const raw = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true });
-            const zip = await JSZip.loadAsync(raw);
-            const sharedStrings = [], sharedMap = {};
-            function getSharedIdx(val) { if (!(val in sharedMap)) { sharedMap[val] = sharedStrings.length; sharedStrings.push(val); } return sharedMap[val]; }
-            const sheetFiles = Object.keys(zip.files).filter(f => f.match(/xl\/worksheets\/sheet\d+\.xml$/));
-            for (const fname of sheetFiles) {
-                let xml = await zip.files[fname].async('string');
-                xml = xml.replace(/<c([^>]*)\bt="str"([^>]*)><v>([^<]*)<\/v><\/c>/g, (match, pre, post, val) => {
-                    const decoded = val.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
-                    const idx = getSharedIdx(decoded);
-                    return `<c${pre}${post} t="s"><v>${idx}</v></c>`;
-                });
-                zip.file(fname, xml);
-            }
-            if (sharedStrings.length > 0) {
-                const ssXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sharedStrings.length}" uniqueCount="${sharedStrings.length}">${sharedStrings.map(s => `<si><t>${s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</t></si>`).join('')}</sst>`;
-                zip.file('xl/sharedStrings.xml', ssXml);
-                let rels = await zip.files['xl/_rels/workbook.xml.rels'].async('string');
-                if (!rels.includes('sharedStrings')) { rels = rels.replace('</Relationships>', '<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>'); zip.file('xl/_rels/workbook.xml.rels', rels); }
-                let ct = await zip.files['[Content_Types].xml'].async('string');
-                if (!ct.includes('sharedStrings')) { ct = ct.replace('</Types>', '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>'); zip.file('[Content_Types].xml', ct); }
-            }
-            return await zip.generateAsync({ type: 'uint8array' });
-        }
-        async function downloadOne(idx) {
-            const r = resultFiles[idx];
-            const bytes = await buildCleanXlsx(r.wb);
-            const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: r.name });
-            a.click(); URL.revokeObjectURL(a.href);
-        }
-        async function downloadAll() {
-            if (!resultFiles.length) return;
-            const btn = document.getElementById('dlAllBtn');
-            btn.disabled = true; btn.textContent = '打包中...';
-            const zip = new JSZip();
-            for (const r of resultFiles) { const bytes = await buildCleanXlsx(r.wb); zip.file(r.name, bytes); }
-            const blob = await zip.generateAsync({ type: 'blob' });
-            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: '常態活動_排除活動款_全部.zip' });
-            a.click(); URL.revokeObjectURL(a.href);
-            btn.disabled = false; btn.textContent = '一次下載全部（ZIP）';
-        }
+<template id="tpl-t4">
+<div class="block">
+  <div class="block-label">活動款式清單</div>
+  <div class="drop-zone" id="promoDropZone">
+    <input type="file" id="promoFile" accept=".xlsx,.xls,.csv">
+    <div class="drop-arrow">↑</div>
+    <div class="drop-label">點擊或拖曳上傳</div>
+    <div class="drop-hint">.xlsx · .xls · .csv</div>
+  </div>
+  <div id="promoFileInfo" style="margin-top:4px;"></div>
+</div>
+<div class="block">
+  <div class="block-label">常態活動清單（可一次上傳多個）</div>
+  <div class="drop-zone" id="normalDropZone">
+    <input type="file" id="normalFiles" accept=".xlsx,.xls,.csv" multiple>
+    <div class="drop-arrow">↑</div>
+    <div class="drop-label">點擊或拖曳上傳</div>
+    <div class="drop-hint">.xlsx · .xls · .csv</div>
+  </div>
+  <div id="normalFileList" style="margin-top:4px;"></div>
+</div>
+<div class="block">
+  <div class="block-label">產出</div>
+  <div class="hint-note" id="readyHint" style="display:none;margin-bottom:10px;"></div>
+  <button class="run-btn" id="runBtn" disabled onclick="runProcess()">開始排除並產出檔案</button>
+  <div class="log-wrap" id="logWrap">
+    <div id="warnBanner" class="warn-banner"></div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+</div>
+<div id="summarySection" style="display:none;margin-top:4px;">
+  <div class="stat-grid" style="margin-bottom:10px;">
+    <div class="stat-card"><div class="lbl">活動款式數量</div><div class="val" id="statPromo">0</div></div>
+    <div class="stat-card"><div class="lbl">常態活動檔案數</div><div class="val" id="statFiles">0</div></div>
+    <div class="stat-card"><div class="lbl">總排除筆數</div><div class="val" id="statTotal">0</div></div>
+  </div>
+  <div class="result-block" id="resultSection">
+    <div class="block-label" style="margin-bottom:12px;">下載檔案</div>
+    <div class="result-list" id="resultList"></div>
+    <button class="dl-all-btn" id="dlAllBtn" onclick="downloadAll()">一次下載全部（ZIP）</button>
+  </div>
+</div>
+</template>
 
-        /* ── Tab 5: 賣場 TAG 匯入 ── */
-        const T5_CHUNK = 200;
-        const T5_TAG_COL = 9;
-        const T5_SKU_COL = 0;
-        const T5_TAG_MAX = 580;
-        let t5ActBarcodes = null, t5MarketData = null, t5MarketHeaders = null;
+<template id="tpl-t5">
+<div class="seg">
+  <button class="active" onclick="switchTagMode('manual',this)">手動輸入 TAG</button>
+  <button onclick="switchTagMode('cat',this)">分類總表 TAG</button>
+</div>
 
-        function t5ReadXlsx(file, cb) {
-            const r = new FileReader();
-            r.onload = e => { try { const wb = XLSX.read(e.target.result, {type:'array'}); cb(null, XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:''})); } catch(err){ cb(err); } };
-            r.readAsArrayBuffer(file);
-        }
-        function t5DropFile(e, type) {
-            e.preventDefault();
-            document.getElementById(type==='act'?'t5-act-zone':'t5-mkt-zone').classList.remove('dragover');
-            const f = e.dataTransfer.files[0];
-            if(f){ type==='act' ? t5LoadActivity(f) : t5LoadMarket(f); }
-        }
-        function t5LoadActivity(file) {
-            t5ReadXlsx(file, (err, data) => {
-                if(err){ alert('讀取失敗：'+err.message); return; }
-                const header = data[0].map(c => String(c).trim());
-                const col = Math.max(0, header.findIndex(h => /barcode|條碼|貨號/i.test(h)));
-                t5ActBarcodes = new Set(data.slice(1).map(r => String(r[col]).trim()).filter(v => v.length===9));
-                document.getElementById('t5-act-badge').style.display = 'flex';
-                document.getElementById('t5-act-name').textContent = file.name;
-                document.getElementById('t5-act-count').textContent = t5ActBarcodes.size + ' 筆';
-                t5CheckReady();
-            });
-        }
-        function t5LoadMarket(file) {
-            t5ReadXlsx(file, (err, data) => {
-                if(err){ alert('讀取失敗：'+err.message); return; }
-                t5MarketHeaders = data[0];
-                t5MarketData = data.slice(1).filter(r => r.some(c => c !== ''));
-                document.getElementById('t5-mkt-badge').style.display = 'flex';
-                document.getElementById('t5-mkt-name').textContent = file.name;
-                document.getElementById('t5-mkt-count').textContent = t5MarketData.length + ' 筆';
-                t5CheckReady();
-            });
-        }
-        function t5ClearAct() { t5ActBarcodes=null; document.getElementById('t5-act-badge').style.display='none'; document.getElementById('t5-act-input').value=''; t5CheckReady(); }
-        function t5ClearMkt() { t5MarketData=null; t5MarketHeaders=null; document.getElementById('t5-mkt-badge').style.display='none'; document.getElementById('t5-mkt-input').value=''; t5CheckReady(); }
+<!-- 手動模式 -->
+<div id="tag-manual">
+  <div class="block">
+    <div class="block-label">Step 01 &nbsp; 活動款式清單</div>
+    <div class="drop-zone" id="t5-act-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t5DropFile(event,'act')">
+      <input type="file" id="t5-act-input" accept=".xlsx,.xls" onchange="t5LoadActivity(this.files[0])">
+      <div class="drop-arrow">↑</div>
+      <div class="drop-label">點擊或拖曳上傳</div>
+      <div class="drop-hint">.xlsx · .xls · 含 BarCode 欄（9碼）</div>
+    </div>
+    <div id="t5-act-badge" class="file-badge" style="display:none;">
+      <span class="ck">✓</span><span class="fn" id="t5-act-name"></span><span class="fc" id="t5-act-count"></span>
+      <button class="xb" onclick="t5ClearAct()">×</button>
+    </div>
+    <div class="hint-note">只需有 BarCode 欄即可，其他欄位忽略</div>
+  </div>
+  <div class="block">
+    <div class="block-label">Step 02 &nbsp; 後台賣場 Excel</div>
+    <div class="drop-zone" id="t5-mkt-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t5DropFile(event,'mkt')">
+      <input type="file" id="t5-mkt-input" accept=".xlsx,.xls" onchange="t5LoadMarket(this.files[0])">
+      <div class="drop-arrow">↑</div>
+      <div class="drop-label">點擊或拖曳上傳</div>
+      <div class="drop-hint">.xlsx · .xls · 後台下載的賣場批次</div>
+    </div>
+    <div id="t5-mkt-badge" class="file-badge" style="display:none;">
+      <span class="ck">✓</span><span class="fn" id="t5-mkt-name"></span><span class="fc" id="t5-mkt-count"></span>
+      <button class="xb" onclick="t5ClearMkt()">×</button>
+    </div>
+  </div>
+  <div class="block">
+    <div class="block-label">Step 03 &nbsp; 輸入要綁的 TAG</div>
+    <input type="text" id="t5-tag-input" placeholder="#2605222Q58R" oninput="t5UpdateTagPreview()">
+    <div style="margin-top:8px;min-height:22px;">
+      <span id="t5-tag-hint" style="font-size:11px;color:var(--faint);font-family:var(--mono);">輸入後這裡會預覽 TAG</span>
+      <span id="t5-tag-pills"></span>
+    </div>
+  </div>
+  <div class="block" id="t5-match-area" style="display:none;">
+    <div class="block-label">篩選結果</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="lbl">賣場總筆數</div><div class="val" id="t5-s-total">0</div></div>
+      <div class="stat-card green"><div class="lbl">活動款式符合</div><div class="val" id="t5-s-match">0</div></div>
+      <div class="stat-card"><div class="lbl">預計拆成</div><div class="val" id="t5-s-parts">0</div></div>
+    </div>
+    <div class="warn-box" id="t5-nomatch-warn"><span id="t5-nomatch-text"></span></div>
+  </div>
+  <div class="prog-wrap" id="t5-progress-area">
+    <div class="prog-label" id="t5-progress-text">處理中…</div>
+    <div class="prog-track"><div class="prog-bar" id="t5-progress-bar"></div></div>
+  </div>
+  <button class="run-btn" id="t5-run-btn" onclick="t5RunProcess()" disabled>綁 TAG 並下載 ZIP</button>
+  <div class="success-box" id="t5-done-area"></div>
+</div>
 
-        function t5ParseTags(raw) { return raw.split('#').map(s=>s.trim()).filter(s=>s.length>0).map(s=>'#'+s); }
-        function t5GetTags() { const raw = document.getElementById('t5-tag-input').value.trim(); return raw ? t5ParseTags(raw) : []; }
+<!-- 分類模式 -->
+<div id="tag-cat" style="display:none;">
+  <div class="block">
+    <div class="block-label">Step 01 &nbsp; 分類 TAG 總表</div>
+    <div class="drop-zone" id="t6-cat-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t6DropFile(event,'cat')">
+      <input type="file" id="t6-cat-input" accept=".xlsx,.xls" onchange="t6LoadCat(this.files[0])">
+      <div class="drop-arrow">↑</div>
+      <div class="drop-label">點擊或拖曳上傳</div>
+      <div class="drop-hint">.xlsx · .xls · Sheet 名稱 = TAG，Sheet 內容 = 貨號清單</div>
+    </div>
+    <div id="t6-cat-badge" style="display:none;">
+      <div class="file-badge" style="margin-top:10px;">
+        <span class="ck">✓</span><span class="fn" id="t6-cat-name"></span>
+        <button class="xb" onclick="t6ClearCat()">×</button>
+      </div>
+      <div id="t6-sheet-list" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+    <div class="hint-note">Sheet 名稱即為 TAG，如 #260522TOP · #260522BOTTOM</div>
+  </div>
+  <div class="block">
+    <div class="block-label">Step 02 &nbsp; 後台賣場 Excel</div>
+    <div class="drop-zone" id="t6-mkt-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="t6DropFile(event,'mkt')">
+      <input type="file" id="t6-mkt-input" accept=".xlsx,.xls" onchange="t6LoadMkt(this.files[0])">
+      <div class="drop-arrow">↑</div>
+      <div class="drop-label">點擊或拖曳上傳</div>
+      <div class="drop-hint">.xlsx · .xls · 後台下載的賣場批次</div>
+    </div>
+    <div id="t6-mkt-badge" class="file-badge" style="display:none;">
+      <span class="ck">✓</span><span class="fn" id="t6-mkt-name"></span><span class="fc" id="t6-mkt-count"></span>
+      <button class="xb" onclick="t6ClearMkt()">×</button>
+    </div>
+  </div>
+  <div class="block" id="t6-match-area" style="display:none;">
+    <div class="block-label">篩選結果</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="lbl">賣場總筆數</div><div class="val" id="t6-s-total">0</div></div>
+      <div class="stat-card green"><div class="lbl">活動款式符合</div><div class="val" id="t6-s-match">0</div></div>
+      <div class="stat-card"><div class="lbl">預計拆成</div><div class="val" id="t6-s-parts">0</div></div>
+    </div>
+    <div class="warn-box" id="t6-nomatch-warn" style="display:none;"><span id="t6-nomatch-text"></span></div>
+  </div>
+  <div class="prog-wrap" id="t6-progress-area">
+    <div class="prog-label" id="t6-progress-text">處理中…</div>
+    <div class="prog-track"><div class="prog-bar" id="t6-progress-bar"></div></div>
+  </div>
+  <button class="run-btn" id="t6-run-btn" onclick="t6RunProcess()" disabled>綁分類 TAG 並下載 ZIP</button>
+  <div class="success-box" id="t6-done-area"></div>
+</div>
+</template>
 
-        function t5UpdateTagPreview() {
-            const raw = document.getElementById('t5-tag-input').value.trim();
-            const pills = document.getElementById('t5-tag-pills');
-            const hint = document.getElementById('t5-tag-hint');
-            if(!raw){ pills.innerHTML=''; hint.style.display='inline'; t5CheckReady(); return; }
-            hint.style.display='none';
-            pills.innerHTML = t5ParseTags(raw).map(t=>`<span class="t5-tag-pill">${t}</span>`).join('');
-            t5CheckReady();
-        }
+<script>
+/* ── Navigation ── */
+const TOOLS = {
+  t1:{name:'綁貨號連結',tpl:'tpl-t1',init:initT1},
+  t2:{name:'Metabase 貨號字串',tpl:'tpl-t2',init:initT2},
+  t3:{name:'TOP4 商品圖',tpl:'tpl-t3',init:initT3},
+  t4:{name:'常態活動排除',tpl:'tpl-t4',init:initT4},
+  t5:{name:'賣場 TAG 匯入',tpl:'tpl-t5',init:initT5},
+};
+function openTool(id){
+  const t=TOOLS[id];
+  document.getElementById('home').style.display='none';
+  document.getElementById('tool-page').style.display='flex';
+  document.getElementById('tool-header-title').textContent=t.name;
+  const content=document.getElementById('tool-content');
+  content.innerHTML='';
+  content.appendChild(document.getElementById(t.tpl).content.cloneNode(true));
+  t.init();
+}
+function goHome(){
+  document.getElementById('home').style.display='flex';
+  document.getElementById('tool-page').style.display='none';
+}
 
-        function t5CheckReady() {
-            const tags = t5GetTags();
-            const canRun = t5ActBarcodes && t5MarketData && tags.length > 0;
-            document.getElementById('t5-run-btn').disabled = !canRun;
-            if(!canRun){ document.getElementById('t5-match-area').style.display='none'; return; }
-            const matched = t5MarketData.filter(r => t5ActBarcodes.has(String(r[T5_SKU_COL]).trim()));
-            const noMatch = [...t5ActBarcodes].filter(b => !t5MarketData.some(r => String(r[T5_SKU_COL]).trim()===b));
-            document.getElementById('t5-match-area').style.display='block';
-            document.getElementById('t5-s-total').textContent = t5MarketData.length.toLocaleString();
-            document.getElementById('t5-s-match').textContent = matched.length.toLocaleString();
-            document.getElementById('t5-s-parts').textContent = Math.ceil(matched.length/T5_CHUNK);
-            const warn = document.getElementById('t5-nomatch-warn');
-            if(noMatch.length > 0){ warn.style.display='block'; document.getElementById('t5-nomatch-text').textContent = '⚠ 活動清單中有 '+noMatch.length+' 筆貨號在賣場 Excel 找不到：'+noMatch.slice(0,5).join('、')+(noMatch.length>5?'…等':''); }
-            else warn.style.display='none';
-        }
+/* ── Copy Popup ── */
+let popupTimer;
+function showCopyPopup(){const p=document.getElementById('copyPopup');p.classList.add('show');clearTimeout(popupTimer);popupTimer=setTimeout(()=>p.classList.remove('show'),1800);}
+function copyOutput(id){const text=document.getElementById(id).innerText.trim();if(!text||text.includes('等待輸入'))return;navigator.clipboard.writeText(text).then(showCopyPopup);}
 
-        // 清除 SheetJS 把 \r 轉成的 _x000d_ 字串
-        function t5AddTagsWithLimit(existing, newTags) {
-            const existingStr = existing ? String(existing).trim() : '';
-            const existingTags = existingStr.split('#').map(s=>s.trim()).filter(s=>s.length>0).map(s=>'#'+s);
-            const newTagsFiltered = newTags.filter(t => !existingTags.includes(t));
-            let tags = [...newTagsFiltered, ...existingTags];
-            while(tags.join('').length > T5_TAG_MAX && tags.length > newTagsFiltered.length) tags.pop();
-            return tags.join('');
-        }
+/* ── T1: 綁貨號連結 ── */
+let selectedBrandUrl='https://www.pazzo.com.tw';
+function initT1(){selectedBrandUrl='https://www.pazzo.com.tw';}
+function selectBrand(btn,url){
+  selectedBrandUrl=url;
+  document.querySelectorAll('[onclick^="selectBrand"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('skuInput1').value='';
+  document.getElementById('longUrlDisplay').innerHTML='<span class="output-ph">等待輸入資料...</span>';
+}
+function cleanSkus(text){
+  if(!text)return'';
+  let items=text.split(/[\n,\t]+/).map(s=>s.trim()).filter(s=>s&&!s.includes('http'));
+  if(items.length===1&&items[0].length>12){const raw=items[0];items=[];for(let i=0;i<raw.length;i+=12){const c=raw.slice(i,i+12);if(c.length===12)items.push(c);}}
+  return items.map(item=>item.includes('barcode=')?item.split('barcode=')[1]:item).join(',');
+}
+function processTab1(){
+  const skus=cleanSkus(document.getElementById('skuInput1').value);
+  const el=document.getElementById('longUrlDisplay');
+  el.innerHTML=skus?selectedBrandUrl.replace(/\/$/,'')+'/match?barcode='+skus:'<span class="output-ph">等待輸入資料...</span>';
+}
+function processTab2(){
+  const skus=cleanSkus(document.getElementById('skuInput2').value);
+  document.getElementById('metabaseDisplay').innerHTML=skus?skus:'<span class="output-ph">等待輸入資料...</span>';
+}
+function clearTab(n){document.getElementById('skuInput'+n).value='';if(n===1)processTab1();else processTab2();}
+function initT2(){}
 
-        // 修正 SheetJS 產出的 xlsx：t="str" → t="s" sharedStrings，並清除 _x000d_
-        async function t5FixXlsx(arrayBuf) {
-            const zip = await JSZip.loadAsync(arrayBuf);
-            let sheetXml = await zip.files['xl/worksheets/sheet1.xml'].async('string');
-            const ss = [], ssMap = {};
-            const decX = s => s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/_x000d_/gi,'');
-            const encX = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-            const idx = val => { if(!(val in ssMap)){ ssMap[val]=ss.length; ss.push(val); } return ssMap[val]; };
-            sheetXml = sheetXml.replace(
-                /<c([^>]*?)t="str"([^>]*)>\s*<v[^>]*>([\s\S]*?)<\/v>\s*<\/c>/g,
-                (m, pre, post, raw) => {
-                    const val = decX(raw);
-                    const attrs = (pre+' '+post).replace(/t="str"/g,'').replace(/xml:space="preserve"/g,'').trim();
-                    return `<c ${attrs} t="s"><v>${idx(val)}</v></c>`;
-                }
-            );
-            zip.file('xl/worksheets/sheet1.xml', sheetXml);
-            const ssXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${ss.length}" uniqueCount="${ss.length}">${ss.map(s=>`<si><t${/[\r\n]/.test(s)?' xml:space="preserve"':''}>${encX(s)}</t></si>`).join('')}</sst>`;
-            zip.file('xl/sharedStrings.xml', ssXml);
-            let rels = await zip.files['xl/_rels/workbook.xml.rels'].async('string');
-            if(!rels.includes('sharedStrings')){ rels=rels.replace('</Relationships>','<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>'); zip.file('xl/_rels/workbook.xml.rels',rels); }
-            let ct = await zip.files['[Content_Types].xml'].async('string');
-            if(!ct.includes('sharedStrings')){ ct=ct.replace('</Types>','<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>'); zip.file('[Content_Types].xml',ct); }
-            return await zip.generateAsync({type:'uint8array'});
-        }
+/* ── T3: TOP4 ── */
+const SPECS={pc:{frame:{w:640,h:875},tops:{1:{imgLeft:108,imgTop:0,imgW:531,imgH:760,topX:128},2:{imgLeft:72,imgTop:0,imgW:531,imgH:760,topX:92},3:{imgLeft:37,imgTop:0,imgW:531,imgH:760,topX:57},4:{imgLeft:1,imgTop:0,imgW:531,imgH:760,topX:21}},topLabel:{topY:12,fontSize:25,lineHeight:35,fontWeight:'500',letterSpacing:.02},nameLabel:{cy:783,fontSize:20,fontWeight:'500',letterSpacing:-.01}},mb:{frame:{w:400,h:522},tops:{1:{imgLeft:64,imgTop:0,imgW:325,imgH:465,topX:79},2:{imgLeft:11,imgTop:0,imgW:325,imgH:465,topX:26},3:{imgLeft:64,imgTop:0,imgW:325,imgH:465,topX:79},4:{imgLeft:11,imgTop:0,imgW:325,imgH:465,topX:26}},topLabel:{topY:9,fontSize:15,lineHeight:21,fontWeight:'500',letterSpacing:.02},nameLabel:{cy:482,fontSize:16,fontWeight:'500',letterSpacing:-.01}}};
+let currentTop=1,topColors={model:'#000107',item:'#000107'},t3images=[null,null];
+function getDateStr(){const d=new Date();return String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
+function drawToCanvas(canvas,img,device,colorKey){
+  const dev=SPECS[device],t=dev.tops[currentTop],f=dev.frame,tl=dev.topLabel,nl=dev.nameLabel;
+  const name=document.getElementById('productName').value.trim();
+  const maxW=Math.min(270,Math.floor((window.innerWidth-140)/2));
+  const scale=canvas._fullSize?1:Math.min(1,maxW/f.w);
+  const ctx=canvas.getContext('2d');
+  canvas.width=Math.round(f.w*scale);canvas.height=Math.round(f.h*scale);
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  if(img){const ir=img.naturalWidth/img.naturalHeight,br=t.imgW/t.imgH;let sw,sh,sx,sy;if(ir>br){sh=img.naturalHeight;sw=sh*br;sy=0;sx=(img.naturalWidth-sw)/2;}else{sw=img.naturalWidth;sh=sw/br;sx=0;sy=(img.naturalHeight-sh)/2;}ctx.save();ctx.beginPath();ctx.rect(t.imgLeft*scale,t.imgTop*scale,t.imgW*scale,t.imgH*scale);ctx.clip();ctx.drawImage(img,sx,sy,sw,sh,t.imgLeft*scale,t.imgTop*scale,t.imgW*scale,t.imgH*scale);ctx.restore();}
+  ctx.save();ctx.font=`${tl.fontWeight} ${tl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`;ctx.fillStyle=topColors[colorKey];ctx.textBaseline='middle';ctx.textAlign='left';ctx.letterSpacing=(tl.letterSpacing*tl.fontSize*scale)+'px';ctx.fillText('TOP'+currentTop,t.topX*scale,(tl.topY+tl.lineHeight/2)*scale);ctx.restore();
+  if(name){ctx.save();ctx.font=`${nl.fontWeight} ${nl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`;ctx.fillStyle='#000';ctx.textBaseline='middle';ctx.textAlign='center';ctx.letterSpacing=(nl.letterSpacing*nl.fontSize*scale)+'px';ctx.fillText(name,(t.imgLeft+t.imgW/2)*scale,nl.cy*scale);ctx.restore();}
+}
+function renderPreviews(){
+  if(!t3images[0]||!t3images[1])return;
+  drawToCanvas(document.getElementById('canvas-item-pc'),t3images[1],'pc','item');
+  drawToCanvas(document.getElementById('canvas-item-mb'),t3images[1],'mb','item');
+  drawToCanvas(document.getElementById('canvas-model-pc'),t3images[0],'pc','model');
+  drawToCanvas(document.getElementById('canvas-model-mb'),t3images[0],'mb','model');
+  document.getElementById('previewSection').classList.add('show');
+  setTimeout(()=>document.getElementById('previewSection').scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+async function downloadAllT3(){
+  const btn=document.getElementById('dlAllBtnT3');btn.textContent='壓縮中...';btn.disabled=true;
+  const tasks=[{img:t3images[1],device:'pc',colorKey:'item',suffix:'item_pc'},{img:t3images[1],device:'mb',colorKey:'item',suffix:'item_mb'},{img:t3images[0],device:'pc',colorKey:'model',suffix:'model_pc'},{img:t3images[0],device:'mb',colorKey:'model',suffix:'model_mb'}];
+  const zip=new JSZip();
+  for(const task of tasks){const c=document.createElement('canvas');c._fullSize=true;drawToCanvas(c,task.img,task.device,task.colorKey);const blob=await new Promise(r=>c.toBlob(r,'image/png'));zip.file(`TOP${currentTop}_${getDateStr()}_${task.suffix}.png`,blob);}
+  const zipBlob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(zipBlob);const a=document.createElement('a');a.href=url;a.download=`TOP${currentTop}_${getDateStr()}.zip`;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),2000);
+  btn.textContent='下載全部 4 張 (.zip)';btn.disabled=false;
+}
+function t3LoadImage(file,idx){
+  return new Promise(resolve=>{const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{t3images[idx]=img;document.getElementById('thumb'+idx).src=e.target.result;document.getElementById('uploadArea'+idx).classList.add('has-image');document.getElementById('dot'+idx).classList.add('done');resolve();};img.src=e.target.result;};reader.readAsDataURL(file);});
+}
+function initT3(){
+  t3images=[null,null];currentTop=1;topColors={model:'#000107',item:'#000107'};
+  [0,1].forEach(idx=>{
+    const input=document.getElementById('fileInput'+idx),area=document.getElementById('uploadArea'+idx);
+    input.addEventListener('change',async e=>{if(!e.target.files[0])return;await t3LoadImage(e.target.files[0],idx);renderPreviews();});
+    area.addEventListener('dragover',e=>{e.preventDefault();area.classList.add('drag-over');});
+    area.addEventListener('dragleave',()=>area.classList.remove('drag-over'));
+    area.addEventListener('drop',async e=>{e.preventDefault();area.classList.remove('drag-over');const file=e.dataTransfer.files[0];if(file&&file.type.startsWith('image/')){await t3LoadImage(file,idx);renderPreviews();}});
+  });
+  document.querySelectorAll('[data-top]').forEach(btn=>btn.addEventListener('click',()=>{currentTop=parseInt(btn.dataset.top);document.querySelectorAll('[data-top]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPreviews();}));
+  document.querySelectorAll('.color-chip').forEach(chip=>chip.addEventListener('click',()=>{const target=chip.dataset.target,color=chip.dataset.color;topColors[target]=color==='white'?'#ffffff':'#000107';document.querySelectorAll('.color-chip[data-target="'+target+'"]').forEach(c=>c.classList.remove('active'));chip.classList.add('active');document.getElementById(target==='item'?'itemColorLabel':'modelColorLabel').textContent=color==='white'?'白色':'黑色';renderPreviews();}));
+  document.getElementById('productName').addEventListener('input',()=>renderPreviews());
+  document.getElementById('resetBtn').addEventListener('click',()=>{t3images=[null,null];[0,1].forEach(i=>{document.getElementById('uploadArea'+i).classList.remove('has-image');document.getElementById('thumb'+i).src='';document.getElementById('dot'+i).classList.remove('done');document.getElementById('fileInput'+i).value='';});document.getElementById('productName').value='';topColors={model:'#000107',item:'#000107'};['item','model'].forEach(target=>{document.querySelectorAll('.color-chip[data-target="'+target+'"]').forEach(c=>c.classList.remove('active'));document.querySelector('.color-chip[data-target="'+target+'"][data-color="black"]').classList.add('active');});document.getElementById('itemColorLabel').textContent='黑色';document.getElementById('modelColorLabel').textContent='黑色';document.getElementById('previewSection').classList.remove('show');});
+}
 
-        async function t5RunProcess() {
-            const tags = t5GetTags();
-            if(!tags.length || !t5ActBarcodes || !t5MarketData) return;
-            const matched = t5MarketData.filter(r => t5ActBarcodes.has(String(r[T5_SKU_COL]).trim()));
-            if(matched.length===0){ alert('沒有符合活動款式的賣場資料。'); return; }
-            const parts = Math.ceil(matched.length/T5_CHUNK);
-            document.getElementById('t5-progress-area').style.display='block';
-            document.getElementById('t5-run-btn').disabled=true;
-            document.getElementById('t5-done-area').style.display='none';
-            let trimmedCount = 0;
-            const taggedRows = matched.map(r => {
-                const row = [...r];
-                const original = String(row[T5_TAG_COL]||'').trim();
-                const result = t5AddTagsWithLimit(original, tags);
-                if(result.length < (tags.join('')+original).length) trimmedCount++;
-                row[T5_TAG_COL] = result;
-                return row;
-            });
-            const outerZip = new JSZip();
-            for(let i=0; i<parts; i++){
-                const slice = taggedRows.slice(i*T5_CHUNK, (i+1)*T5_CHUNK);
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet([t5MarketHeaders, ...slice]);
-                XLSX.utils.book_append_sheet(wb, ws, '賣場批次');
-                const rawBuf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-                // 修正格式：t="str" → t="s" sharedStrings，清除 _x000d_
-                const fixedBuf = await t5FixXlsx(rawBuf);
-                outerZip.file(`賣場匯入_第${i+1}份_共${parts}份.xlsx`, fixedBuf);
-                document.getElementById('t5-progress-bar').style.width = Math.round((i+1)/parts*100)+'%';
-                document.getElementById('t5-progress-text').textContent = `產生中… 第 ${i+1} / ${parts} 份`;
-                await new Promise(r=>setTimeout(r,0));
-            }
-            document.getElementById('t5-progress-text').textContent = '壓縮打包中…';
-            const blob = await outerZip.generateAsync({type:'blob'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href=url; a.download=`賣場匯入_${tags[0].replace('#','')}_共${parts}份.zip`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            document.getElementById('t5-progress-area').style.display='none';
-            document.getElementById('t5-run-btn').disabled=false;
-            const done = document.getElementById('t5-done-area');
-            done.style.display='block';
-            done.textContent = `✓ 完成！${matched.length} 筆拆成 ${parts} 份，ZIP 已下載。` + (trimmedCount>0?`（${trimmedCount} 筆超過 580 字元，已自動刪除末尾舊 TAG）`:'');
-        }
-    </script>
+/* ── T4: 常態活動排除 ── */
+let promoData=null,normalFilesData=[],resultFiles=[];
+function xlsxReadFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>{try{resolve({wb:XLSX.read(e.target.result,{type:'array',cellDates:true,cellStyles:true}),raw:e.target.result});}catch(err){reject(err);}};r.onerror=reject;r.readAsArrayBuffer(file);});}
+function xlsxGetRows(wb){return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});}
+function findHeaderRow(rows){const kw=['商品編號','sku','barcode','品名','售價','檔期','庫存','銷量','活動'];for(let i=0;i<Math.min(10,rows.length);i++){const cells=rows[i].map(c=>String(c||'').trim().toLowerCase());const nonempty=cells.filter(c=>c!=='');if(!nonempty.length)continue;if(cells.some(c=>kw.some(k=>c.includes(k))))return i;if(nonempty.length===1&&nonempty[0].length<30&&!nonempty[0].includes('\n'))return i;}return 0;}
+function xlog(msg,type=''){const box=document.getElementById('logBox');const line=document.createElement('div');line.className='ll'+(type?' '+type:'');line.textContent=msg;box.appendChild(line);box.scrollTop=box.scrollHeight;}
+function fmtN(n){return n.toLocaleString();}
+function initT4(){
+  promoData=null;normalFilesData=[];resultFiles=[];
+  document.getElementById('promoFile').addEventListener('change',async e=>{if(e.target.files[0])await loadPromoFile(e.target.files[0]);});
+  setupDrop('promoDropZone',false);
+  document.getElementById('normalFiles').addEventListener('change',async e=>{for(const f of Array.from(e.target.files))await loadNormalFile(f);});
+  setupDrop('normalDropZone',true);
+}
+function setupDrop(zoneId,multiple){const zone=document.getElementById(zoneId);zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));zone.addEventListener('drop',async e=>{e.preventDefault();zone.classList.remove('dragover');const files=Array.from(e.dataTransfer.files).filter(f=>/\.(xlsx|xls|csv)$/i.test(f.name));if(!files.length)return;if(!multiple)await loadPromoFile(files[0]);else for(const f of files)await loadNormalFile(f);});}
+async function loadPromoFile(file){try{const{wb}=await xlsxReadFile(file);const rows=xlsxGetRows(wb);const hi=findHeaderRow(rows);const headers=rows[hi];const dataRows=rows.slice(hi+1).filter(r=>r.some(c=>c!==''));let ci=headers.findIndex(h=>String(h||'').trim()==='BarCode (9碼)(必填)');if(ci<0)ci=headers.findIndex(h=>String(h||'').trim().includes('商品編號'));promoData={file,wb,headers,rows:dataRows,headerRowIdx:hi,colIdx:ci};const colName=ci>=0?headers[ci]:null;document.getElementById('promoFileInfo').innerHTML=`<div class="file-badge"><span class="ck">✓</span><span class="fn">${file.name}</span><span class="fc">${fmtN(dataRows.length)} 筆</span><button class="xb" onclick="clearPromo()">×</button></div><div class="hint-note">${colName?'比對欄位：'+colName:'找不到 BarCode 欄位，請確認檔案格式'}</div>`;checkT4Ready();}catch(e){alert('讀取失敗：'+e.message);}}
+function clearPromo(){promoData=null;document.getElementById('promoFileInfo').innerHTML='';document.getElementById('promoFile').value='';checkT4Ready();}
+async function loadNormalFile(file){if(normalFilesData.find(d=>d.file.name===file.name))return;try{const{wb}=await xlsxReadFile(file);const rows=xlsxGetRows(wb);const hi=findHeaderRow(rows);const headers=rows[hi];const dataRows=rows.slice(hi+1).filter(r=>r.some(c=>c!==''));let ci=headers.findIndex(h=>String(h||'').trim()==='BarCode (9碼)(必填)');if(ci<0)ci=headers.findIndex(h=>String(h||'').trim().includes('商品編號'));normalFilesData.push({file,wb,headers,rows:dataRows,headerRowIdx:hi,colIdx:ci});renderNormalList();checkT4Ready();}catch(e){alert('讀取 '+file.name+' 失敗：'+e.message);}}
+function removeNormalFile(idx){normalFilesData.splice(idx,1);renderNormalList();checkT4Ready();}
+function renderNormalList(){document.getElementById('normalFileList').innerHTML=normalFilesData.map((d,i)=>`<div class="file-badge" style="margin-top:6px;"><span class="ck">✓</span><span class="fn">${d.file.name}</span><span class="fc">${fmtN(d.rows.length)} 筆</span><button class="xb" onclick="removeNormalFile(${i})">×</button></div>`).join('');}
+function checkT4Ready(){const ready=promoData&&normalFilesData.length>0;document.getElementById('runBtn').disabled=!ready;const hint=document.getElementById('readyHint');if(!promoData&&!normalFilesData.length){hint.textContent='請先上傳活動款式清單與常態活動檔案';hint.style.display='block';}else if(!promoData){hint.textContent='已上傳常態活動，請上傳活動款式清單';hint.style.display='block';}else if(!normalFilesData.length){hint.textContent='已上傳活動款式，請上傳常態活動檔案';hint.style.display='block';}else hint.style.display='none';}
+function runProcess(){
+  const logBox=document.getElementById('logBox'),warnBanner=document.getElementById('warnBanner');
+  logBox.innerHTML='';warnBanner.style.display='none';
+  document.getElementById('logWrap').classList.add('show');resultFiles=[];
+  const pci=promoData.colIdx;if(pci<0){xlog('活動款式清單找不到 BarCode 欄位','error');return;}
+  const promoSet=new Set();for(const row of promoData.rows){const v=String(row[pci]||'').trim();if(v)promoSet.add(v);}
+  xlog(`活動款式：${fmtN(promoSet.size)} 個商品`,'info');xlog(`常態活動檔案：${normalFilesData.length} 個`,'info');xlog('─'.repeat(44),'divider');
+  let totalExcluded=0;const fullyExcluded=[];
+  for(const nd of normalFilesData){
+    const nci=nd.colIdx;if(nci<0){xlog(`${nd.file.name}  —  找不到 BarCode 欄位，略過`,'warn');continue;}
+    const orig=nd.rows.length;const kept=nd.rows.filter(row=>!promoSet.has(String(row[nci]||'').trim()));const excl=orig-kept.length;totalExcluded+=excl;
+    if(kept.length===0){fullyExcluded.push(nd.file.name);xlog(`${nd.file.name}  —  全部商品須排除，不產出檔案`,'warn');continue;}
+    xlog(`${nd.file.name}`,'info');xlog(`  原始 ${fmtN(orig)} 筆  →  排除 ${fmtN(excl)} 筆  →  剩餘 ${fmtN(kept.length)} 筆`);
+    const sheetName=nd.wb.SheetNames[0];const ws=nd.wb.Sheets[sheetName];const range=XLSX.utils.decode_range(ws['!ref']);const headerRow=nd.headerRowIdx;
+    const keptSet=new Set(kept.map(r=>String(r[nci]||'').trim()));const newCells={};let newRowIdx=0;
+    for(let r=range.s.r;r<=headerRow;r++){for(let c=range.s.c;c<=range.e.c;c++){const oa=XLSX.utils.encode_cell({r,c}),na=XLSX.utils.encode_cell({r:newRowIdx,c});if(ws[oa]){const cell=Object.assign({},ws[oa]);delete cell.z;newCells[na]=cell;}}newRowIdx++;}
+    for(let r=headerRow+1;r<=range.e.r;r++){const ba=XLSX.utils.encode_cell({r,c:nci});const bv=ws[ba]?String(ws[ba].v||'').trim():'';if(!bv||!keptSet.has(bv))continue;for(let c=range.s.c;c<=range.e.c;c++){const oa=XLSX.utils.encode_cell({r,c}),na=XLSX.utils.encode_cell({r:newRowIdx,c});if(ws[oa]){const cell=Object.assign({},ws[oa]);delete cell.z;newCells[na]=cell;}}newRowIdx++;}
+    const newWs=Object.assign({},newCells);newWs['!ref']=XLSX.utils.encode_range({s:{r:0,c:range.s.c},e:{r:newRowIdx-1,c:range.e.c}});if(ws['!cols'])newWs['!cols']=ws['!cols'];if(ws['!rows'])newWs['!rows']=ws['!rows'];
+    const newWb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(newWb,newWs,sheetName);resultFiles.push({name:nd.file.name.replace(/\.xlsx?$/i,'')+'_排除活動款.xlsx',wb:newWb,excl,kept:kept.length,orig});
+  }
+  xlog('─'.repeat(44),'divider');xlog(`完成　共排除 ${fmtN(totalExcluded)} 筆`,'success');
+  if(fullyExcluded.length>0){warnBanner.style.display='block';warnBanner.innerHTML=`<strong>注意：以下 ${fullyExcluded.length} 個常態活動的商品全部須排除，不須產出新檔案</strong><br>`+fullyExcluded.map(n=>`&nbsp;&nbsp;${n}`).join('<br>');}
+  document.getElementById('statPromo').textContent=fmtN(promoSet.size);document.getElementById('statFiles').textContent=normalFilesData.length;document.getElementById('statTotal').textContent=fmtN(totalExcluded);
+  document.getElementById('resultList').innerHTML=resultFiles.map((r,i)=>`<div class="result-item"><span class="ri-name">${r.name}</span><span class="ri-stat">${fmtN(r.kept)} 筆</span><span class="ri-tag">-${fmtN(r.excl)}</span><button class="ri-dl" onclick="downloadOne(${i})">下載</button></div>`).join('');
+  document.getElementById('resultSection').style.display=resultFiles.length>0?'block':'none';
+  document.getElementById('summarySection').style.display='block';document.getElementById('summarySection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function buildCleanXlsx(wb){const raw=XLSX.write(wb,{bookType:'xlsx',type:'array',compression:true});const zip=await JSZip.loadAsync(raw);const ss=[],ssMap={};function gsi(val){if(!(val in ssMap)){ssMap[val]=ss.length;ss.push(val);}return ssMap[val];}const sf=Object.keys(zip.files).filter(f=>f.match(/xl\/worksheets\/sheet\d+\.xml$/));for(const fn of sf){let xml=await zip.files[fn].async('string');xml=xml.replace(/<c([^>]*)\bt="str"([^>]*)><v>([^<]*)<\/v><\/c>/g,(m,pre,post,val)=>{const d=val.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");return`<c${pre}${post} t="s"><v>${gsi(d)}</v></c>`;});zip.file(fn,xml);}if(ss.length>0){const ssX=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${ss.length}" uniqueCount="${ss.length}">${ss.map(s=>`<si><t>${s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</t></si>`).join('')}</sst>`;zip.file('xl/sharedStrings.xml',ssX);let rels=await zip.files['xl/_rels/workbook.xml.rels'].async('string');if(!rels.includes('sharedStrings')){rels=rels.replace('</Relationships>','<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>');zip.file('xl/_rels/workbook.xml.rels',rels);}let ct=await zip.files['[Content_Types].xml'].async('string');if(!ct.includes('sharedStrings')){ct=ct.replace('</Types>','<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');zip.file('[Content_Types].xml',ct);}}return await zip.generateAsync({type:'uint8array'});}
+async function downloadOne(idx){const r=resultFiles[idx];const bytes=await buildCleanXlsx(r.wb);const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:r.name});a.click();URL.revokeObjectURL(a.href);}
+async function downloadAll(){if(!resultFiles.length)return;const btn=document.getElementById('dlAllBtn');btn.disabled=true;btn.textContent='打包中...';const zip=new JSZip();for(const r of resultFiles){const bytes=await buildCleanXlsx(r.wb);zip.file(r.name,bytes);}const blob=await zip.generateAsync({type:'blob'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:'常態活動_排除活動款_全部.zip'});a.click();URL.revokeObjectURL(a.href);btn.disabled=false;btn.textContent='一次下載全部（ZIP）';}
+
+/* ── T5: 賣場 TAG 匯入 ── */
+const TAG_CHUNK=200,TAG_COL=9,SKU_COL=0,TAG_MAX=580;
+let t5ActBarcodes=null,t5MarketData=null,t5MarketHeaders=null;
+let t6CatSheets=null,t6MarketData=null,t6MarketHeaders=null;
+
+function initT5(){}
+function switchTagMode(mode,btn){
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('tag-manual').style.display=mode==='manual'?'block':'none';
+  document.getElementById('tag-cat').style.display=mode==='cat'?'block':'none';
+}
+
+/* shared fix */
+async function fixXlsx(arrayBuf){
+  const zip=await JSZip.loadAsync(arrayBuf);let sheetXml=await zip.files['xl/worksheets/sheet1.xml'].async('string');
+  const ss=[],ssMap={};
+  const decX=s=>s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/_x000d_/gi,'');
+  const encX=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const getIdx=val=>{if(!(val in ssMap)){ssMap[val]=ss.length;ss.push(val);}return ssMap[val];};
+  sheetXml=sheetXml.replace(/<c([^>]*?)t="str"([^>]*)>\s*<v[^>]*>([\s\S]*?)<\/v>\s*<\/c>/g,(m,pre,post,raw)=>{const val=decX(raw);const attrs=(pre+' '+post).replace(/t="str"/g,'').replace(/xml:space="preserve"/g,'').trim();return`<c ${attrs} t="s"><v>${getIdx(val)}</v></c>`;});
+  zip.file('xl/worksheets/sheet1.xml',sheetXml);
+  const ssXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${ss.length}" uniqueCount="${ss.length}">${ss.map(s=>`<si><t${/[\r\n]/.test(s)?' xml:space="preserve"':''}>${encX(s)}</t></si>`).join('')}</sst>`;
+  zip.file('xl/sharedStrings.xml',ssXml);
+  let rels=await zip.files['xl/_rels/workbook.xml.rels'].async('string');
+  if(!rels.includes('sharedStrings')){rels=rels.replace('</Relationships>','<Relationship Id="rIdSS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>');zip.file('xl/_rels/workbook.xml.rels',rels);}
+  let ct=await zip.files['[Content_Types].xml'].async('string');
+  if(!ct.includes('sharedStrings')){ct=ct.replace('</Types>','<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');zip.file('[Content_Types].xml',ct);}
+  return await zip.generateAsync({type:'uint8array'});
+}
+
+function addTagsWithLimit(existing,newTags){
+  const eStr=existing?String(existing).trim():'';
+  const eTags=eStr.split('#').map(s=>s.trim()).filter(s=>s.length>0).map(s=>'#'+s);
+  const nFiltered=newTags.filter(t=>!eTags.includes(t));
+  let tags=[...nFiltered,...eTags];
+  while(tags.join('').length>TAG_MAX&&tags.length>nFiltered.length)tags.pop();
+  return tags.join('');
+}
+
+function t5ReadXlsx(file,cb){const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});cb(null,XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}));}catch(err){cb(err);}};r.readAsArrayBuffer(file);}
+function t5DropFile(e,type){e.preventDefault();document.getElementById(type==='act'?'t5-act-zone':'t5-mkt-zone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f){type==='act'?t5LoadActivity(f):t5LoadMarket(f);}}
+function t5LoadActivity(file){t5ReadXlsx(file,(err,data)=>{if(err){alert('讀取失敗：'+err.message);return;}const header=data[0].map(c=>String(c).trim());const col=Math.max(0,header.findIndex(h=>/barcode|條碼|貨號/i.test(h)));t5ActBarcodes=new Set(data.slice(1).map(r=>String(r[col]).trim()).filter(v=>v.length===9));document.getElementById('t5-act-badge').style.display='flex';document.getElementById('t5-act-name').textContent=file.name;document.getElementById('t5-act-count').textContent=t5ActBarcodes.size+' 筆';t5CheckReady();});}
+function t5LoadMarket(file){t5ReadXlsx(file,(err,data)=>{if(err){alert('讀取失敗：'+err.message);return;}t5MarketHeaders=data[0];t5MarketData=data.slice(1).filter(r=>r.some(c=>c!==''));document.getElementById('t5-mkt-badge').style.display='flex';document.getElementById('t5-mkt-name').textContent=file.name;document.getElementById('t5-mkt-count').textContent=t5MarketData.length+' 筆';t5CheckReady();});}
+function t5ClearAct(){t5ActBarcodes=null;document.getElementById('t5-act-badge').style.display='none';document.getElementById('t5-act-input').value='';t5CheckReady();}
+function t5ClearMkt(){t5MarketData=null;t5MarketHeaders=null;document.getElementById('t5-mkt-badge').style.display='none';document.getElementById('t5-mkt-input').value='';t5CheckReady();}
+function t5ParseTags(raw){return raw.split('#').map(s=>s.trim()).filter(s=>s.length>0).map(s=>'#'+s);}
+function t5GetTags(){const raw=document.getElementById('t5-tag-input').value.trim();return raw?t5ParseTags(raw):[];}
+function t5UpdateTagPreview(){const raw=document.getElementById('t5-tag-input').value.trim();const pills=document.getElementById('t5-tag-pills');const hint=document.getElementById('t5-tag-hint');if(!raw){pills.innerHTML='';hint.style.display='inline';t5CheckReady();return;}hint.style.display='none';pills.innerHTML=t5ParseTags(raw).map(t=>`<span class="tag-pill">${t}</span>`).join('');t5CheckReady();}
+function t5CheckReady(){const tags=t5GetTags();const canRun=t5ActBarcodes&&t5MarketData&&tags.length>0;document.getElementById('t5-run-btn').disabled=!canRun;if(!canRun){document.getElementById('t5-match-area').style.display='none';return;}const matched=t5MarketData.filter(r=>t5ActBarcodes.has(String(r[SKU_COL]).trim()));const noMatch=[...t5ActBarcodes].filter(b=>!t5MarketData.some(r=>String(r[SKU_COL]).trim()===b));document.getElementById('t5-match-area').style.display='block';document.getElementById('t5-s-total').textContent=t5MarketData.length.toLocaleString();document.getElementById('t5-s-match').textContent=matched.length.toLocaleString();document.getElementById('t5-s-parts').textContent=Math.ceil(matched.length/TAG_CHUNK);const warn=document.getElementById('t5-nomatch-warn');if(noMatch.length>0){warn.style.display='block';document.getElementById('t5-nomatch-text').textContent='⚠ 活動清單中有 '+noMatch.length+' 筆貨號在賣場 Excel 找不到：'+noMatch.slice(0,5).join('、')+(noMatch.length>5?'…等':'');}else warn.style.display='none';}
+async function t5RunProcess(){const tags=t5GetTags();if(!tags.length||!t5ActBarcodes||!t5MarketData)return;const matched=t5MarketData.filter(r=>t5ActBarcodes.has(String(r[SKU_COL]).trim()));if(matched.length===0){alert('沒有符合活動款式的賣場資料。');return;}const parts=Math.ceil(matched.length/TAG_CHUNK);const pa=document.getElementById('t5-progress-area');pa.style.display='block';document.getElementById('t5-run-btn').disabled=true;document.getElementById('t5-done-area').style.display='none';let trimmedCount=0;const taggedRows=matched.map(r=>{const row=[...r];const original=String(row[TAG_COL]||'').trim();const result=addTagsWithLimit(original,tags);if(result.length<(tags.join('')+original).length)trimmedCount++;row[TAG_COL]=result;return row;});const outerZip=new JSZip();for(let i=0;i<parts;i++){const slice=taggedRows.slice(i*TAG_CHUNK,(i+1)*TAG_CHUNK);const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([t5MarketHeaders,...slice]);XLSX.utils.book_append_sheet(wb,ws,'賣場批次');const rawBuf=XLSX.write(wb,{bookType:'xlsx',type:'array'});const fixedBuf=await fixXlsx(rawBuf);outerZip.file(`賣場匯入_第${i+1}份_共${parts}份.xlsx`,fixedBuf);document.getElementById('t5-progress-bar').style.width=Math.round((i+1)/parts*100)+'%';document.getElementById('t5-progress-text').textContent=`產生中… 第 ${i+1} / ${parts} 份`;await new Promise(r=>setTimeout(r,0));}document.getElementById('t5-progress-text').textContent='壓縮打包中…';const blob=await outerZip.generateAsync({type:'blob'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`賣場匯入_${tags[0].replace('#','')}_共${parts}份.zip`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);pa.style.display='none';document.getElementById('t5-run-btn').disabled=false;const done=document.getElementById('t5-done-area');done.style.display='block';done.textContent=`✓ 完成！${matched.length} 筆拆成 ${parts} 份，ZIP 已下載。`+(trimmedCount>0?`（${trimmedCount} 筆超過 580 字元，已自動刪除末尾舊 TAG）`:'');}
+
+/* T6: 分類 TAG */
+function t6DropFile(e,type){e.preventDefault();document.getElementById(type==='cat'?'t6-cat-zone':'t6-mkt-zone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f){type==='cat'?t6LoadCat(f):t6LoadMkt(f);}}
+function t6LoadCat(file){const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const sheets=wb.SheetNames.map(name=>{const ws=wb.Sheets[name];const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});const header=rows[0]?rows[0].map(c=>String(c).trim()):[];const col=Math.max(0,header.findIndex(h=>/barcode|條碼|貨號/i.test(h)));const barcodes=new Set(rows.slice(1).map(r=>String(r[col]||'').trim()).filter(v=>v.length===9));return{tag:name.trim(),barcodes};}).filter(s=>s.tag.startsWith('#')&&s.barcodes.size>0);if(sheets.length===0){alert('找不到以 # 開頭的 Sheet 名稱，請確認格式。');return;}t6CatSheets=sheets;document.getElementById('t6-cat-badge').style.display='block';document.getElementById('t6-cat-name').textContent=file.name;document.getElementById('t6-sheet-list').innerHTML=sheets.map(s=>`<span class="tag-pill">${s.tag} <span style="opacity:.6">${s.barcodes.size}筆</span></span>`).join('');t6CheckReady();}catch(err){alert('讀取失敗：'+err.message);}};r.readAsArrayBuffer(file);}
+function t6LoadMkt(file){const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});t6MarketHeaders=data[0];t6MarketData=data.slice(1).filter(r=>r.some(c=>c!==''));document.getElementById('t6-mkt-badge').style.display='flex';document.getElementById('t6-mkt-name').textContent=file.name;document.getElementById('t6-mkt-count').textContent=t6MarketData.length+' 筆';t6CheckReady();}catch(err){alert('讀取失敗：'+err.message);}};r.readAsArrayBuffer(file);}
+function t6ClearCat(){t6CatSheets=null;document.getElementById('t6-cat-badge').style.display='none';document.getElementById('t6-cat-input').value='';t6CheckReady();}
+function t6ClearMkt(){t6MarketData=null;t6MarketHeaders=null;document.getElementById('t6-mkt-badge').style.display='none';document.getElementById('t6-mkt-input').value='';t6CheckReady();}
+function t6CheckReady(){const canRun=t6CatSheets&&t6MarketData;document.getElementById('t6-run-btn').disabled=!canRun;if(!canRun){document.getElementById('t6-match-area').style.display='none';return;}const allBarcodes=new Set();t6CatSheets.forEach(s=>s.barcodes.forEach(b=>allBarcodes.add(b)));const matched=t6MarketData.filter(r=>allBarcodes.has(String(r[SKU_COL]).trim()));const noMatch=[...allBarcodes].filter(b=>!t6MarketData.some(r=>String(r[SKU_COL]).trim()===b));document.getElementById('t6-match-area').style.display='block';document.getElementById('t6-s-total').textContent=t6MarketData.length.toLocaleString();document.getElementById('t6-s-match').textContent=matched.length.toLocaleString();document.getElementById('t6-s-parts').textContent=Math.ceil(matched.length/TAG_CHUNK);const warn=document.getElementById('t6-nomatch-warn');if(noMatch.length>0){warn.style.display='block';document.getElementById('t6-nomatch-text').textContent='⚠ 分類總表中有 '+noMatch.length+' 筆貨號在賣場 Excel 找不到：'+noMatch.slice(0,5).join('、')+(noMatch.length>5?'…等':'');}else warn.style.display='none';}
+async function t6RunProcess(){if(!t6CatSheets||!t6MarketData)return;const skuTagMap={};t6CatSheets.forEach(sheet=>{sheet.barcodes.forEach(barcode=>{if(!skuTagMap[barcode])skuTagMap[barcode]=[];if(!skuTagMap[barcode].includes(sheet.tag))skuTagMap[barcode].push(sheet.tag);});});const allBarcodes=new Set(Object.keys(skuTagMap));const matched=t6MarketData.filter(r=>allBarcodes.has(String(r[SKU_COL]).trim()));if(matched.length===0){alert('沒有符合分類清單的賣場資料。');return;}const parts=Math.ceil(matched.length/TAG_CHUNK);const pa=document.getElementById('t6-progress-area');pa.style.display='block';document.getElementById('t6-run-btn').disabled=true;document.getElementById('t6-done-area').style.display='none';const taggedRows=matched.map(r=>{const row=[...r];const sku=String(row[SKU_COL]).trim();const newTags=skuTagMap[sku]||[];const original=String(row[TAG_COL]||'').trim();row[TAG_COL]=addTagsWithLimit(original,newTags);return row;});const outerZip=new JSZip();for(let i=0;i<parts;i++){const slice=taggedRows.slice(i*TAG_CHUNK,(i+1)*TAG_CHUNK);const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([t6MarketHeaders,...slice]);XLSX.utils.book_append_sheet(wb,ws,'賣場批次');const rawBuf=XLSX.write(wb,{bookType:'xlsx',type:'array'});const fixedBuf=await fixXlsx(rawBuf);outerZip.file(`賣場匯入_第${i+1}份_共${parts}份.xlsx`,fixedBuf);document.getElementById('t6-progress-bar').style.width=Math.round((i+1)/parts*100)+'%';document.getElementById('t6-progress-text').textContent=`產生中… 第 ${i+1} / ${parts} 份`;await new Promise(r=>setTimeout(r,0));}document.getElementById('t6-progress-text').textContent='壓縮打包中…';const blob=await outerZip.generateAsync({type:'blob'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`賣場匯入_分類TAG_共${parts}份.zip`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);pa.style.display='none';document.getElementById('t6-run-btn').disabled=false;const done=document.getElementById('t6-done-area');done.style.display='block';done.textContent=`✓ 完成！${matched.length} 筆拆成 ${parts} 份，ZIP 已下載。`;}
+</script>
 </body>
 </html>
