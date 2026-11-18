@@ -306,13 +306,14 @@ textarea::placeholder,input[type=text]::placeholder{color:var(--faint);}
 
 <template id="tpl-t3">
 <div class="block">
-  <div class="block-label">排名</div>
+  <div class="block-label">排名（選填）</div>
   <div class="chip-row">
-    <button class="chip active" data-top="1">TOP 1</button>
+    <button class="chip" data-top="1">TOP 1</button>
     <button class="chip" data-top="2">TOP 2</button>
     <button class="chip" data-top="3">TOP 3</button>
     <button class="chip" data-top="4">TOP 4</button>
   </div>
+  <div class="hint-note">不選排名就不顯示 TOP 文字；再次點擊已選排名可取消。</div>
   <div class="color-row">
     <div class="color-item">
       <div class="color-item-label">商品平拍 · TOP 文字色</div>
@@ -778,10 +779,10 @@ function initT2(){}
 
 /* ── T3: TOP4 ── */
 const SPECS={pc:{frame:{w:640,h:875},tops:{1:{imgLeft:108,imgTop:0,imgW:531,imgH:760,topX:128},2:{imgLeft:72,imgTop:0,imgW:531,imgH:760,topX:92},3:{imgLeft:37,imgTop:0,imgW:531,imgH:760,topX:57},4:{imgLeft:1,imgTop:0,imgW:531,imgH:760,topX:21}},topLabel:{topY:12,fontSize:25,lineHeight:35,fontWeight:'500',letterSpacing:.02},nameLabel:{cy:783,fontSize:20,fontWeight:'500',letterSpacing:-.01}},mb:{frame:{w:400,h:522},tops:{1:{imgLeft:64,imgTop:0,imgW:325,imgH:465,topX:79},2:{imgLeft:11,imgTop:0,imgW:325,imgH:465,topX:26},3:{imgLeft:64,imgTop:0,imgW:325,imgH:465,topX:79},4:{imgLeft:11,imgTop:0,imgW:325,imgH:465,topX:26}},topLabel:{topY:9,fontSize:15,lineHeight:21,fontWeight:'500',letterSpacing:.02},nameLabel:{cy:482,fontSize:16,fontWeight:'500',letterSpacing:-.01}}};
-let currentTop=1,topColors={model:'#000107',item:'#000107'},t3images=[null,null];
+let currentTop=null,topColors={model:'#000107',item:'#000107'},t3images=[null,null];
 function getDateStr(){const d=new Date();return String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
 function drawToCanvas(canvas,img,device,colorKey){
-  const dev=SPECS[device],t=dev.tops[currentTop],f=dev.frame,tl=dev.topLabel,nl=dev.nameLabel;
+  const dev=SPECS[device],t=dev.tops[currentTop||1],f=dev.frame,tl=dev.topLabel,nl=dev.nameLabel;
   const name=document.getElementById('productName').value.trim();
   const maxW=Math.min(270,Math.floor((window.innerWidth-140)/2));
   const scale=canvas._fullSize?1:Math.min(1,maxW/f.w);
@@ -789,7 +790,7 @@ function drawToCanvas(canvas,img,device,colorKey){
   canvas.width=Math.round(f.w*scale);canvas.height=Math.round(f.h*scale);
   ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
   if(img){const ir=img.naturalWidth/img.naturalHeight,br=t.imgW/t.imgH;let sw,sh,sx,sy;if(ir>br){sh=img.naturalHeight;sw=sh*br;sy=0;sx=(img.naturalWidth-sw)/2;}else{sw=img.naturalWidth;sh=sw/br;sx=0;sy=(img.naturalHeight-sh)/2;}ctx.save();ctx.beginPath();ctx.rect(t.imgLeft*scale,t.imgTop*scale,t.imgW*scale,t.imgH*scale);ctx.clip();ctx.drawImage(img,sx,sy,sw,sh,t.imgLeft*scale,t.imgTop*scale,t.imgW*scale,t.imgH*scale);ctx.restore();}
-  ctx.save();ctx.font=`${tl.fontWeight} ${tl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`;ctx.fillStyle=topColors[colorKey];ctx.textBaseline='middle';ctx.textAlign='left';ctx.letterSpacing=(tl.letterSpacing*tl.fontSize*scale)+'px';ctx.fillText('TOP'+currentTop,t.topX*scale,(tl.topY+tl.lineHeight/2)*scale);ctx.restore();
+  if(currentTop!==null){ctx.save();ctx.font=`${tl.fontWeight} ${tl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`;ctx.fillStyle=topColors[colorKey];ctx.textBaseline='middle';ctx.textAlign='left';ctx.letterSpacing=(tl.letterSpacing*tl.fontSize*scale)+'px';ctx.fillText('TOP'+currentTop,t.topX*scale,(tl.topY+tl.lineHeight/2)*scale);ctx.restore();}
   if(name){ctx.save();ctx.font=`${nl.fontWeight} ${nl.fontSize*scale}px 'PingFang SC','Noto Sans TC',sans-serif`;ctx.fillStyle='#000';ctx.textBaseline='middle';ctx.textAlign='center';ctx.letterSpacing=(nl.letterSpacing*nl.fontSize*scale)+'px';ctx.fillText(name,(t.imgLeft+t.imgW/2)*scale,nl.cy*scale);ctx.restore();}
 }
 function renderPreviews(){
@@ -805,16 +806,17 @@ async function downloadAllT3(){
   const btn=document.getElementById('dlAllBtnT3');btn.textContent='壓縮中...';btn.disabled=true;
   const tasks=[{img:t3images[1],device:'pc',colorKey:'item',suffix:'item_pc'},{img:t3images[1],device:'mb',colorKey:'item',suffix:'item_mb'},{img:t3images[0],device:'pc',colorKey:'model',suffix:'model_pc'},{img:t3images[0],device:'mb',colorKey:'model',suffix:'model_mb'}];
   const zip=new JSZip();
-  for(const task of tasks){const c=document.createElement('canvas');c._fullSize=true;drawToCanvas(c,task.img,task.device,task.colorKey);const blob=await new Promise(r=>c.toBlob(r,'image/png'));zip.file(`TOP${currentTop}_${getDateStr()}_${task.suffix}.png`,blob);}
+  const fileLabel=currentTop===null?'商品圖':'TOP'+currentTop;
+  for(const task of tasks){const c=document.createElement('canvas');c._fullSize=true;drawToCanvas(c,task.img,task.device,task.colorKey);const blob=await new Promise(r=>c.toBlob(r,'image/png'));zip.file(`${fileLabel}_${getDateStr()}_${task.suffix}.png`,blob);}
   const zipBlob=await zip.generateAsync({type:'blob'});
-  const url=URL.createObjectURL(zipBlob);const a=document.createElement('a');a.href=url;a.download=`TOP${currentTop}_${getDateStr()}.zip`;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),2000);
+  const url=URL.createObjectURL(zipBlob);const a=document.createElement('a');a.href=url;a.download=`${fileLabel}_${getDateStr()}.zip`;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),2000);
   btn.textContent='下載全部 4 張 (.zip)';btn.disabled=false;
 }
 function t3LoadImage(file,idx){
   return new Promise(resolve=>{const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{t3images[idx]=img;document.getElementById('thumb'+idx).src=e.target.result;document.getElementById('uploadArea'+idx).classList.add('has-image');document.getElementById('dot'+idx).classList.add('done');resolve();};img.src=e.target.result;};reader.readAsDataURL(file);});
 }
 function initT3(){
-  t3images=[null,null];currentTop=1;topColors={model:'#000107',item:'#000107'};
+  t3images=[null,null];currentTop=null;topColors={model:'#000107',item:'#000107'};
   [0,1].forEach(idx=>{
     const input=document.getElementById('fileInput'+idx),area=document.getElementById('uploadArea'+idx);
     input.addEventListener('change',async e=>{if(!e.target.files[0])return;await t3LoadImage(e.target.files[0],idx);renderPreviews();});
@@ -822,10 +824,10 @@ function initT3(){
     area.addEventListener('dragleave',()=>area.classList.remove('drag-over'));
     area.addEventListener('drop',async e=>{e.preventDefault();area.classList.remove('drag-over');const file=e.dataTransfer.files[0];if(file&&file.type.startsWith('image/')){await t3LoadImage(file,idx);renderPreviews();}});
   });
-  document.querySelectorAll('[data-top]').forEach(btn=>btn.addEventListener('click',()=>{currentTop=parseInt(btn.dataset.top);document.querySelectorAll('[data-top]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPreviews();}));
+  document.querySelectorAll('[data-top]').forEach(btn=>btn.addEventListener('click',()=>{const selectedTop=parseInt(btn.dataset.top,10);currentTop=currentTop===selectedTop?null:selectedTop;document.querySelectorAll('[data-top]').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.top,10)===currentTop));renderPreviews();}));
   document.querySelectorAll('.color-chip').forEach(chip=>chip.addEventListener('click',()=>{const target=chip.dataset.target,color=chip.dataset.color;topColors[target]=color==='white'?'#ffffff':'#000107';document.querySelectorAll('.color-chip[data-target="'+target+'"]').forEach(c=>c.classList.remove('active'));chip.classList.add('active');document.getElementById(target==='item'?'itemColorLabel':'modelColorLabel').textContent=color==='white'?'白色':'黑色';renderPreviews();}));
   document.getElementById('productName').addEventListener('input',()=>renderPreviews());
-  document.getElementById('resetBtn').addEventListener('click',()=>{t3images=[null,null];[0,1].forEach(i=>{document.getElementById('uploadArea'+i).classList.remove('has-image');document.getElementById('thumb'+i).src='';document.getElementById('dot'+i).classList.remove('done');document.getElementById('fileInput'+i).value='';});document.getElementById('productName').value='';topColors={model:'#000107',item:'#000107'};['item','model'].forEach(target=>{document.querySelectorAll('.color-chip[data-target="'+target+'"]').forEach(c=>c.classList.remove('active'));document.querySelector('.color-chip[data-target="'+target+'"][data-color="black"]').classList.add('active');});document.getElementById('itemColorLabel').textContent='黑色';document.getElementById('modelColorLabel').textContent='黑色';document.getElementById('previewSection').classList.remove('show');});
+  document.getElementById('resetBtn').addEventListener('click',()=>{t3images=[null,null];currentTop=null;document.querySelectorAll('[data-top]').forEach(b=>b.classList.remove('active'));[0,1].forEach(i=>{document.getElementById('uploadArea'+i).classList.remove('has-image');document.getElementById('thumb'+i).src='';document.getElementById('dot'+i).classList.remove('done');document.getElementById('fileInput'+i).value='';});document.getElementById('productName').value='';topColors={model:'#000107',item:'#000107'};['item','model'].forEach(target=>{document.querySelectorAll('.color-chip[data-target="'+target+'"]').forEach(c=>c.classList.remove('active'));document.querySelector('.color-chip[data-target="'+target+'"][data-color="black"]').classList.add('active');});document.getElementById('itemColorLabel').textContent='黑色';document.getElementById('modelColorLabel').textContent='黑色';document.getElementById('previewSection').classList.remove('show');});
 }
 
 /* ── T4: 常態活動排除 ── */
