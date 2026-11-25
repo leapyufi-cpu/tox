@@ -149,7 +149,7 @@ async function refreshStats(){
 function getKeepRows(analysis){
   const {rows,groups}=analysis;
   const source=new Map(rows.map(r=>[r.index,r]));
-  const keep=[1,2,3];
+  const keep=[1,2,3,4];
   const specials=new Set();
   for(const g of groups){
     if(g.highlight && ( $("keepHighlights").checked || $("keepGifts").checked)){
