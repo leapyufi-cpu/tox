@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PAZZO｜商品檔期表整理工具</title>
+<style>
+:root{font-family:Inter,"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#22262a;background:#f7f7f5}
+*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}
+.wrap{max-width:960px;margin:auto;padding:35px 22px 75px}
+.bar{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e6e6e3;padding-bottom:22px}
+.logo{font-size:18px;letter-spacing:.12em;font-weight:800}.chip{font-size:11px;font-weight:800;letter-spacing:.06em;background:#e9e8e5;padding:9px 12px;border-radius:20px}
+h1{font-size:clamp(28px,5vw,47px);letter-spacing:-.05em;line-height:1.2;margin:33px 0 10px}
+.lead{max-width:710px;color:#72757a;line-height:1.8;font-size:15px;margin-bottom:28px}
+.panel{background:white;border:1px solid #e8e8e5;border-radius:18px;box-shadow:0 14px 32px #24252408;padding:27px;margin:17px 0}
+.sectionHead{display:flex;gap:12px;align-items:center;margin-bottom:20px}
+.num{display:grid;place-items:center;background:#2f3336;color:white;width:31px;height:31px;border-radius:50%;font-size:13px;font-weight:700}
+h2{font-size:18px;margin:0}
+.drop{border:2px dashed #b9bdc2;background:#fafaf9;border-radius:13px;min-height:165px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;text-align:center;padding:20px;transition:.18s}
+.drop.drag{border-color:#9e7151;background:#fcf5f0}.drop strong{font-size:15px}
+.drop small{font-size:12px;color:#81848b}
+.pick{color:#79533d;background:transparent;border:0;text-decoration:underline;font-weight:800;padding:0}
+.file{display:flex;align-items:center;gap:11px;background:#f4f5f3;border-radius:11px;padding:14px;margin-top:15px}
+.fileinfo{flex:1;min-width:0}.fileinfo strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.fileinfo small{display:block;margin-top:4px;color:#74797d}
+.field{display:flex;flex-direction:column;gap:7px;margin-top:18px;font-size:13px;font-weight:700}
+select{padding:12px;border:1px solid #d7dbdd;border-radius:9px;background:white}
+.rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.rule{display:flex;gap:9px;align-items:flex-start;padding:13px;border:1px solid #eeece9;border-radius:11px}
+.dot{color:#5b8667;font-weight:900;font-size:17px}
+.rule strong{display:block;font-size:13px}.rule p{font-size:12px;line-height:1.6;color:#73777c;margin:5px 0 0}
+.options{margin-top:20px;border-top:1px solid #efefec;padding-top:12px}
+.toggle{display:flex;align-items:center;gap:10px;font-size:13px;margin:12px 0}
+.toggle input{accent-color:#282e33;width:16px;height:16px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.stat{background:#f7f7f5;border-radius:10px;padding:14px}
+.stat b{display:block;font-size:23px}.stat span{color:#777b81;font-size:11px}
+.action{width:100%;background:#272c30;color:#fff;font-weight:750;border:0;border-radius:11px;padding:17px;margin-top:13px}
+.action:hover{background:#3c4348}.action:disabled{opacity:.4;cursor:not-allowed}
+.output{border:1px solid #cce0d0;background:#f4faf4;border-radius:12px;padding:15px;margin-top:13px;font-size:13px;line-height:1.8}
+.output.error{border-color:#efc7c0;background:#fff4f1;color:#8c3229}
+.output strong{display:block}.hide{display:none!important}
+.info{font-size:12px;color:#57795d;margin-top:13px;line-height:1.7}
+.foot{font-size:12px;color:#84898d;line-height:1.8;margin:26px 0}
+@media(max-width:650px){.wrap{padding:20px 13px 40px}.panel{padding:17px}.rules{grid-template-columns:1fr}.stat{padding:10px}.stat b{font-size:18px}.chip{font-size:9px}}
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script defer src="./app.js"></script>
+</head>
+<body><main class="wrap">
+<header class="bar"><div class="logo">PAZZO <span style="color:#999;font-weight:400">/ OPERATIONS</span></div><span class="chip">INTERNAL TOOL · V1.0</span></header>
+<h1>商品檔期表<br>一鍵整理成分享版。</h1>
+<p class="lead">依照你提供的 11、12 月範本，刪除不需跨部門分享的內部資訊，同步縮減整列並移動商品圖片。保留商品貨號、售價、顏色、門市件數、尺寸與完整商品描述。</p>
+<section class="panel">
+<div class="sectionHead"><span class="num">1</span><h2>上傳原始 Excel</h2></div>
+<div class="drop" id="drop" role="button" tabindex="0" aria-label="選擇 Excel">
+<span style="font-size:32px">📁</span>
+<strong>拖曳檔期表，或 <button class="pick" type="button" id="pick">選擇 Excel</button></strong>
+<small>支援 .xlsx，檔案只在你的瀏覽器中處理</small>
+<input type="file" id="fileInput" accept=".xlsx" hidden>
+</div>
+<div class="file hide" id="fileBox"><span style="font-size:25px">📄</span><div class="fileinfo"><strong id="fileName"></strong><small id="fileSize"></small></div><span style="font-size:12px;color:#5b8667">已選取</span></div>
+<div class="field hide" id="sheetField"><label for="sheetSelect">商品工作表</label><select id="sheetSelect"></select></div>
+<div class="stats hide" id="stats"><div class="stat"><b id="groupCount">—</b><span>商品批次</span></div><div class="stat"><b id="productCount">—</b><span>辨識商品數</span></div><div class="stat"><b id="imageCount">—</b><span>原始圖片數</span></div></div>
+</section>
+<section class="panel">
+<div class="sectionHead"><span class="num">2</span><h2>確認整理規則</h2></div>
+<div class="rules">
+<div class="rule"><span class="dot">✓</span><div><strong>刪除內部分析列</strong><p>整週總覽、商品角色、類別、貨況、備註、成本、市值、ONLINE／OFFLINE 成本及金額。</p></div></div>
+<div class="rule"><span class="dot">✓</span><div><strong>保留商品資訊</strong><p>商品圖片、主要商品貨號、活動價及定價、顏色、尺寸、名稱、描述。</p></div></div>
+<div class="rule"><span class="dot">✓</span><div><strong>清除內部代碼與數字</strong><p>供應商代碼、其他編號、成本／毛利、ONLINE 件數，僅保留 OFFLINE 件數。</p></div></div>
+<div class="rule"><span class="dot">✓</span><div><strong>刪除整列、商品往上移</strong><p>同步調整圖片錨點與合併儲存格，維持原始三欄商品配置。</p></div></div>
+<div class="rule"><span class="dot">✓</span><div><strong>移除其他工作表</strong><p>不保留總表或未選取的其他頁籤。</p></div></div>
+<div class="rule"><span class="dot">✓</span><div><strong>保留原始欄位文字</strong><p>活動組合／活動價／毛利、成本／定價／毛利、顏色／件數標籤不改名。</p></div></div>
+</div>
+<div class="options">
+<label class="toggle"><input type="checkbox" id="keepHighlights" checked>保留 A+ 主推款標示</label>
+<label class="toggle"><input type="checkbox" id="keepGifts" checked>保留 GIFT／贈品說明</label>
+</div>
+<button class="action" id="run" disabled>整理並下載跨部門分享版 Excel</button>
+<div id="output" class="output hide" aria-live="polite"></div>
+<div class="info">🔒 在本機瀏覽器處理 Excel，檔案內容不會上傳到 GitHub。</div>
+</section>
+<p class="foot">本工具依 PAZZO 每款商品三欄的原始檔期格式設計。若未來增加欄位、更換排版或調整商品資訊，請先核對結果，再分享給其他部門。</p>
+</main></body></html>
