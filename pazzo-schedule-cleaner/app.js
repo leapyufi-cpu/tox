@@ -85,11 +85,19 @@ function groupLayouts(rows){
     const byIndex=new Map(rows.map(x=>[x.index,x]));
     const productCols=[...byIndex.get(start).cells.entries()].filter(([col,c])=>col>=3&&(col-3)%3===0&&/^P[A-Z0-9]{6,}$/.test(cellValue(c).trim())).map(([col])=>col);
     if(!productCols.length && result.length) continue;
-    const lastColor=Array.from({length:r.size-r.color},(_,j)=>r.color+j).filter(i=>{
-      const row=byIndex.get(i);return row && [...row.cells.entries()].some(([c,node])=>c>=2 && (c-2)%3===0 && !!cellValue(node).trim());
-    }).pop() ?? r.color;
-    const highlight=rows.find(x=>x.index> (result.at(-1)?.description||0) && x.index<start && [...x.cells.values()].some(c=>/A\+\s*主推|GIFT|贈品|滿額/i.test(cellValue(c))));
-    result.push({...r,lastColor,productCols,highlight:highlight?.index});
+    // Check visible color and OFFLINE quantity across ALL products. Do not count ONLINE quantities or formatting-only cells.
+    // Keep a partially populated row (orange-marked case); drop a row only when all product groups are empty (blue-marked case).
+    const colorRows=Array.from({length:r.size-r.color},(_,j)=>r.color+j).filter(i=>{
+      const row=byIndex.get(i);
+      return row && [...row.cells.entries()].some(([c,node])=>
+        c>=2 && c<=31 && ((c-2)%3===0 || (c-2)%3===2) && !!cellValue(node).trim()
+      );
+    });
+    if(!colorRows.length)colorRows.push(r.color); // Preserve the label when a group has no colors yet.
+    const highlight=rows.find(x=>x.index> (result.at(-1)?.description||0) && x.index<start &&
+      !/關鍵字\s*[\/／]?\s*備註/.test(x.label) &&
+      [...x.cells.values()].some(c=>/A\+\s*主推|GIFT|贈品|滿額/i.test(cellValue(c))));
+    result.push({...r,colorRows,productCols,highlight:highlight?.index});
   }
   return result;
 }
@@ -158,13 +166,17 @@ function getKeepRows(analysis){
         const v=cellValue(c);
         return ($("keepHighlights").checked && /A\+\s*主推/.test(v)) || ($("keepGifts").checked && /GIFT|贈品|滿額/i.test(v));
       });
-      if(matching){keep.push(g.highlight);specials.add(g.highlight);}
+      if(matching && !/關鍵字\s*[\/／]?\s*備註/.test(row.label)){
+        keep.push(g.highlight);specials.add(g.highlight);
+      }
     }
     keep.push(g.code,g.image,g.activity,g.price);
-    for(let i=g.color;i<=g.lastColor;i++)keep.push(i);
+    keep.push(...g.colorRows);
     keep.push(g.size,g.name,g.description);
   }
-  return {keep:[...new Set(keep)].sort((a,b)=>a-b),specials};
+  // Force-remove the whole keyword/notes row, even when it contains GIFT or other marketing terms.
+  const forbidden=new Set(rows.filter(r=>/關鍵字\s*[\/／]?\s*備註/.test(r.label)).map(r=>r.index));
+  return {keep:[...new Set(keep)].filter(i=>!forbidden.has(i)).sort((a,b)=>a-b),specials};
 }
 function filteredCell(rowType, col, rawValue, rowNumber){
   if(rowType==="header"){
@@ -200,7 +212,7 @@ function transformSheet(analysis){
   for(const g of analysis.groups){
     if(specials.has(g.highlight))types.set(g.highlight,"highlight");
     for(const k of ["code","image","activity","price","size","name","description"])types.set(g[k],k);
-    for(let i=g.color;i<=g.lastColor;i++)types.set(i,"color");
+    for(const i of g.colorRows)types.set(i,"color");
   }
   const sheetData=child(root,"sheetData");
   const original=[...sheetData.children].filter(e=>e.localName==="row");
@@ -215,7 +227,15 @@ function transformSheet(analysis){
       if(pos.col>31){row.removeChild(c);continue;} // AF, AG totals are internal
       const value=cellValue(c);
       const safe=filteredCell(type,pos.col,value,old);
-      if(safe===null||safe===""){row.removeChild(c);continue;}
+      if(safe===null||safe===""){
+        // Preserve empty worksheet cells (styles/fills), then add consistent borders in the styling pass.
+        // Do not leave sensitive values or formulas inside them.
+        if(["code","activity","price","color","size","name","description"].includes(type)){
+          rewriteCell(c,null);
+          c.setAttribute("r",colLetters(pos.col)+nr);
+        }else row.removeChild(c);
+        continue;
+      }
       let result=safe,asString=false;
       if(type==="header"&&old===1&&pos.col===2&&/^\d{5}$/.test(safe)){result=dateString(safe);asString=true;}
       if(type==="header"&&old===1&&pos.col===1){asString=true;}
@@ -239,10 +259,15 @@ function transformSheet(analysis){
       const ref=m.getAttribute("ref")||"", [a,b]=ref.split(":");
       const p=parseAddr(a),q=parseAddr(b||a);
       if(!p||!q){mergeSection.removeChild(m);continue;}
-      const start=rank.get(p.row),end=rank.get(q.row);
-      if(!start||!end||end-start!==q.row-p.row||p.col>31||q.col>31){
+      const start=rank.get(p.row);
+      // Color labels (e.g. A21:A26) are vertically merged. Shorten the merge to the
+      // retained rows rather than dropping its border when blank color rows are deleted.
+      const mappedRows=[...rank.entries()].filter(([old])=>old>=p.row&&old<=q.row).map(([,now])=>now);
+      const end=mappedRows.at(-1);
+      if(!start||!end||p.col>31||q.col>31){
         mergeSection.removeChild(m);continue;
       }
+      if(start===end && p.col===q.col){mergeSection.removeChild(m);continue;}
       m.setAttribute("ref",colLetters(p.col)+start+":"+colLetters(q.col)+end);
     }
     mergeSection.setAttribute("count",String(mergeSection.children.length));
@@ -255,7 +280,8 @@ function transformSheet(analysis){
     if(+col.getAttribute("min")>31)cols.removeChild(col);
     else if(+col.getAttribute("max")>31)col.setAttribute("max","31");
   }
-  return {doc,rank,rowCount:keep.length};
+  const rowTypes=new Map([...types.entries()].filter(([old])=>rank.has(old)).map(([old,type])=>[rank.get(old),type]));
+  return {doc,rank,rowTypes,rowCount:keep.length};
 }
 function transformDrawing(draw,rank){
   if(!draw.drawDoc)return {doc:null,images:0};
@@ -273,6 +299,81 @@ function transformDrawing(draw,rank){
   }
   return {doc,images:kept};
 }
+
+function applyCleanStyles(sheetDoc, stylesDoc, rowTypes){
+  const root=stylesDoc.documentElement;
+  const fonts=child(root,"fonts");
+  if(fonts){
+    for(const font of children(fonts,"font")){
+      let name=child(font,"name");
+      if(!name){name=stylesDoc.createElementNS(NS,"name");font.append(name);}
+      name.setAttribute("val","微軟正黑體");
+    }
+  }
+  const borders=child(root,"borders"),xfs=child(root,"cellXfs");
+  if(!borders||!xfs)return;
+  const originalXfs=children(xfs,"xf"),origBorders=children(borders,"border");
+  const styleCache=new Map(),borderCache=new Map();
+  const sideNames=["left","right","top","bottom"];
+  const edgedStyle=styleId=>{
+    if(styleCache.has(styleId))return styleCache.get(styleId);
+    const xf=originalXfs[styleId]||originalXfs[0];
+    if(!xf)return styleId;
+    const originalBorder=origBorders[+(xf.getAttribute("borderId")||0)]||origBorders[0];
+    if(!originalBorder)return styleId;
+    const key=+(xf.getAttribute("borderId")||0);
+    let borderId=borderCache.get(key);
+    if(borderId===undefined){
+      const copy=originalBorder.cloneNode(true);
+      let changed=false;
+      for(const sideName of sideNames){
+        let edge=child(copy,sideName);
+        if(!edge){edge=stylesDoc.createElementNS(NS,sideName);copy.append(edge);}
+        if(!edge.getAttribute("style")){
+          edge.setAttribute("style","thin");
+          const color=stylesDoc.createElementNS(NS,"color");
+          color.setAttribute("rgb","FFD2D5D8");
+          edge.append(color);
+          changed=true;
+        }
+      }
+      if(changed){borderId=borders.children.length;borders.append(copy);}
+      else borderId=key;
+      borderCache.set(key,borderId);
+    }
+    if(borderId===key){styleCache.set(styleId,styleId);return styleId;}
+    const copyXf=xf.cloneNode(true);
+    copyXf.setAttribute("borderId",String(borderId));
+    copyXf.setAttribute("applyBorder","1");
+    const newStyle=xfs.children.length;xfs.append(copyXf);
+    styleCache.set(styleId,newStyle);return newStyle;
+  };
+  const gridTypes=new Set(["code","activity","price","color","size","name","description"]);
+  for(const row of children(child(sheetDoc.documentElement,"sheetData"),"row")){
+    if(!gridTypes.has(rowTypes.get(+row.getAttribute("r"))))continue;
+    const cells=new Map(children(row,"c").map(c=>[parseAddr(c.getAttribute("r"))?.col,c]));
+    // The A:AE area is the 10 x 3-column product grid. Keep original cell fills
+    // and formats; only add borders, including at formerly blank cells.
+    for(let col=1;col<=31;col++){
+      let cell=cells.get(col);
+      if(!cell){
+        cell=sheetDoc.createElementNS(NS,"c");
+        cell.setAttribute("r",colLetters(col)+row.getAttribute("r"));
+        // Take style from the same column's original row where available.
+        const nearest=cells.get(col-1)||cells.get(col+1);
+        if(nearest?.hasAttribute("s"))cell.setAttribute("s",nearest.getAttribute("s"));
+        let next=children(row,"c").find(c=>parseAddr(c.getAttribute("r"))?.col>col);
+        if(next)row.insertBefore(cell,next);else row.append(cell);
+        cells.set(col,cell);
+      }
+      const styleId=+(cell.getAttribute("s")||0);
+      cell.setAttribute("s",String(edgedStyle(styleId)));
+    }
+  }
+  borders.setAttribute("count",String(borders.children.length));
+  xfs.setAttribute("count",String(xfs.children.length));
+}
+
 function makeRelDoc(records){
   const d=document.implementation.createDocument(PKG,"Relationships",null);
   for(const [id,type,target] of records){
@@ -282,7 +383,7 @@ function makeRelDoc(records){
 }
 async function buildOutput(){
   const {sheet,draw}=analysis;
-  const {doc,rank,rowCount}=transformSheet(analysis);
+  const {doc,rank,rowTypes,rowCount}=transformSheet(analysis);
   const {doc:drawDoc,images}=transformDrawing(draw,rank);
   if(draw.count && images<analysis.productCount)throw new Error("圖片座標數量異常（"+images+"），為避免遺失圖片，已停止下載。");
   const zip=new JSZip();
@@ -314,7 +415,12 @@ async function buildOutput(){
   only.setAttribute("name",sheet.name);only.setAttribute("sheetId","1");only.setAttributeNS(REL,"r:id","rId1");sheetList.append(only);
   zip.file("xl/workbook.xml",serialize(workbook));
   const workbookRels=[["rId1",R+"worksheet",sheet.path.replace(/^xl\//,"")]];
-  if(sourceZip.file("xl/styles.xml")){zip.file("xl/styles.xml",await sourceZip.file("xl/styles.xml").async("uint8array"));workbookRels.push(["rId2",R+"styles","styles.xml"]);}
+  if(sourceZip.file("xl/styles.xml")){
+    const stylesDoc=await getXML(sourceZip,"xl/styles.xml");
+    applyCleanStyles(doc,stylesDoc,rowTypes);
+    zip.file("xl/styles.xml",serialize(stylesDoc));
+    workbookRels.push(["rId2",R+"styles","styles.xml"]);
+  }
   if(sourceZip.file("xl/theme/theme1.xml")){zip.file("xl/theme/theme1.xml",await sourceZip.file("xl/theme/theme1.xml").async("uint8array"));workbookRels.push(["rId3",R+"theme","theme/theme1.xml"]);}
   zip.file("xl/_rels/workbook.xml.rels",serialize(makeRelDoc(workbookRels)));
   zip.file(sheet.path,serialize(doc));
