@@ -476,7 +476,7 @@ async function run(){
     analysis.doc=doc;
     const draw=await drawingStats(sourceZip,analysis.sheet);analysis.draw=draw;
     const result=await buildOutput();
-    const filename=inputFile.name.replace(/\.xlsx$/i,"")+"_跨部門分享版.xlsx";
+    const filename="門市檔期表.xlsx";
     const url=URL.createObjectURL(result.blob),a=document.createElement("a");
     a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),60000);
