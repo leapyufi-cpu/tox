@@ -85,15 +85,21 @@ function groupLayouts(rows){
     const byIndex=new Map(rows.map(x=>[x.index,x]));
     const productCols=[...byIndex.get(start).cells.entries()].filter(([col,c])=>col>=3&&(col-3)%3===0&&/^P[A-Z0-9]{6,}$/.test(cellValue(c).trim())).map(([col])=>col);
     if(!productCols.length && result.length) continue;
-    // Check visible color and OFFLINE quantity across ALL products. Do not count ONLINE quantities or formatting-only cells.
-    // Keep a partially populated row (orange-marked case); drop a row only when all product groups are empty (blue-marked case).
+    // Keep only meaningful color/quantity rows for actual merchandise columns.
+    // A row with styles, empty strings, formulas cached as 0, or zero quantities
+    // is blank and must be deleted. If ANY product has color or a positive OFFLINE
+    // count, keep that row for every product to preserve their vertical alignment.
     const colorRows=Array.from({length:r.size-r.color},(_,j)=>r.color+j).filter(i=>{
       const row=byIndex.get(i);
-      return row && [...row.cells.entries()].some(([c,node])=>
-        c>=2 && c<=31 && ((c-2)%3===0 || (c-2)%3===2) && !!cellValue(node).trim()
-      );
+      if(!row)return false;
+      return productCols.some(center=>{
+        const color=cellValue(row.cells.get(center-1)).trim();
+        const quantity=cellValue(row.cells.get(center+1)).trim().replace(/,/g,"");
+        const hasColor=!!color && color!=="-" && color!=="－" && color!=="0";
+        const hasOffline=!!quantity && (Number.isNaN(Number(quantity)) ? !/^[-－—]$/.test(quantity) : Number(quantity)>0);
+        return hasColor || hasOffline;
+      });
     });
-    if(!colorRows.length)colorRows.push(r.color); // Preserve the label when a group has no colors yet.
     const highlight=rows.find(x=>x.index> (result.at(-1)?.description||0) && x.index<start &&
       !/關鍵字\s*[\/／]?\s*備註/.test(x.label) &&
       [...x.cells.values()].some(c=>/A\+\s*主推|GIFT|贈品|滿額/i.test(cellValue(c))));
@@ -383,6 +389,70 @@ function applyCleanStyles(sheetDoc, stylesDoc, groups, rank){
       const before=+(cell.getAttribute("s")||0);
       const after=outlineStyle(before,edges);
       if(after!==before)cell.setAttribute("s",String(after));
+    }
+  }
+  // Size cells are merged in 3-column groups. Some originals use a white fill
+  // even though the other products in that same size row use the beige size fill.
+  // Copy only the missing background fill; do not touch value, font, borders,
+  // alignment, or the merged-cell definitions.
+  const fills=child(root,"fills");
+  const fillIsVisible=id=>{
+    const fill=fills?.children[+id];
+    const pattern=child(fill,"patternFill");
+    return !!pattern && pattern.getAttribute("patternType")==="solid";
+  };
+  const getFill=id=>+(xfs.children[+id]?.getAttribute("fillId")||0);
+  const chooseFill=counts=>[...counts.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
+  const globalCounts=new Map();
+  for(const g of groups){
+    const rowNum=rank.get(g.size);
+    const row=children(child(sheetDoc.documentElement,"sheetData"),"row").find(r=>+r.getAttribute("r")===rowNum);
+    if(!row)continue;
+    const cells=new Map(children(row,"c").map(c=>[parseAddr(c.getAttribute("r"))?.col,c]));
+    for(const center of g.productCols){
+      const first=cells.get(center-1);
+      if(!first||!cellValue(first).trim())continue;
+      const fillId=getFill(+(first.getAttribute("s")||0));
+      if(fillIsVisible(fillId))globalCounts.set(fillId,(globalCounts.get(fillId)||0)+1);
+    }
+  }
+  const globalFill=chooseFill(globalCounts);
+  const fillStyles=new Map();
+  for(const g of groups){
+    const rowNum=rank.get(g.size);
+    const row=children(child(sheetDoc.documentElement,"sheetData"),"row").find(r=>+r.getAttribute("r")===rowNum);
+    if(!row)continue;
+    const cells=new Map(children(row,"c").map(c=>[parseAddr(c.getAttribute("r"))?.col,c]));
+    const localCounts=new Map();
+    for(const center of g.productCols){
+      const first=cells.get(center-1);
+      if(!first||!cellValue(first).trim())continue;
+      const fillId=getFill(+(first.getAttribute("s")||0));
+      if(fillIsVisible(fillId))localCounts.set(fillId,(localCounts.get(fillId)||0)+1);
+    }
+    const chosen=chooseFill(localCounts)||globalFill;
+    if(chosen===null)continue;
+    for(const center of g.productCols){
+      const first=cells.get(center-1);
+      if(!first||!cellValue(first).trim())continue;
+      for(let col=center-1;col<=center+1;col++){
+        const cell=cells.get(col);
+        if(!cell)continue; // Do not create any new cells within the merge.
+        const before=+(cell.getAttribute("s")||0);
+        if(fillIsVisible(getFill(before)))continue;
+        const key=before+"|"+chosen;
+        let after=fillStyles.get(key);
+        if(after===undefined){
+          const originalXf=xfs.children[before]||xfs.children[0];
+          if(!originalXf)continue;
+          const copy=originalXf.cloneNode(true);
+          copy.setAttribute("fillId",String(chosen));
+          copy.setAttribute("applyFill","1");
+          after=xfs.children.length;xfs.append(copy);
+          fillStyles.set(key,after);
+        }
+        cell.setAttribute("s",String(after));
+      }
     }
   }
   borders.setAttribute("count",String(borders.children.length));
