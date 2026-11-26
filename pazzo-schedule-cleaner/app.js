@@ -300,74 +300,89 @@ function transformDrawing(draw,rank){
   return {doc,images:kept};
 }
 
-function applyCleanStyles(sheetDoc, stylesDoc, rowTypes){
+function applyCleanStyles(sheetDoc, stylesDoc, groups, rank){
+  // Preserve existing cell layout, merges, fills, and interior borders.
+  // Only complete missing OUTER edges on each product card (B:D, E:G, etc).
   const root=stylesDoc.documentElement;
   const fonts=child(root,"fonts");
-  if(fonts){
-    for(const font of children(fonts,"font")){
-      let name=child(font,"name");
-      if(!name){name=stylesDoc.createElementNS(NS,"name");font.append(name);}
-      name.setAttribute("val","微軟正黑體");
-    }
+  if(fonts)for(const font of children(fonts,"font")){
+    let name=child(font,"name");
+    if(!name){name=stylesDoc.createElementNS(NS,"name");font.append(name);}
+    name.setAttribute("val","微軟正黑體");
   }
   const borders=child(root,"borders"),xfs=child(root,"cellXfs");
   if(!borders||!xfs)return;
-  const originalXfs=children(xfs,"xf"),origBorders=children(borders,"border");
-  const styleCache=new Map(),borderCache=new Map();
-  const sideNames=["left","right","top","bottom"];
-  const edgedStyle=styleId=>{
-    if(styleCache.has(styleId))return styleCache.get(styleId);
+  const originalXfs=children(xfs,"xf"),originalBorders=children(borders,"border");
+  const styleCache=new Map();
+  const edgeName=["left","right","top","bottom"];
+  function outlineStyle(styleId,edges){
+    const requested=edgeName.filter(side=>edges.has(side));
+    if(!requested.length)return styleId;
+    const key=styleId+"|"+requested.join(",");
+    if(styleCache.has(key))return styleCache.get(key);
     const xf=originalXfs[styleId]||originalXfs[0];
     if(!xf)return styleId;
-    const originalBorder=origBorders[+(xf.getAttribute("borderId")||0)]||origBorders[0];
-    if(!originalBorder)return styleId;
-    const key=+(xf.getAttribute("borderId")||0);
-    let borderId=borderCache.get(key);
-    if(borderId===undefined){
-      const copy=originalBorder.cloneNode(true);
-      let changed=false;
-      for(const sideName of sideNames){
-        let edge=child(copy,sideName);
-        if(!edge){edge=stylesDoc.createElementNS(NS,sideName);copy.append(edge);}
-        if(!edge.getAttribute("style")){
-          edge.setAttribute("style","thin");
-          const color=stylesDoc.createElementNS(NS,"color");
-          color.setAttribute("rgb","FFD2D5D8");
-          edge.append(color);
-          changed=true;
-        }
-      }
-      if(changed){borderId=borders.children.length;borders.append(copy);}
-      else borderId=key;
-      borderCache.set(key,borderId);
+    const origBorder=originalBorders[+(xf.getAttribute("borderId")||0)]||originalBorders[0];
+    if(!origBorder)return styleId;
+    const border=origBorder.cloneNode(true);
+    let changed=false;
+    for(const side of requested){
+      let el=child(border,side);
+      if(!el){el=stylesDoc.createElementNS(NS,side);border.append(el);}
+      // Existing lines are never restyled.
+      if(el.getAttribute("style"))continue;
+      el.setAttribute("style","thin");
+      const color=stylesDoc.createElementNS(NS,"color");
+      color.setAttribute("rgb","FF8E9398");
+      el.append(color);
+      changed=true;
     }
-    if(borderId===key){styleCache.set(styleId,styleId);return styleId;}
-    const copyXf=xf.cloneNode(true);
-    copyXf.setAttribute("borderId",String(borderId));
-    copyXf.setAttribute("applyBorder","1");
-    const newStyle=xfs.children.length;xfs.append(copyXf);
-    styleCache.set(styleId,newStyle);return newStyle;
+    if(!changed){styleCache.set(key,styleId);return styleId;}
+    const borderId=borders.children.length;
+    borders.append(border);
+    const copy=xf.cloneNode(true);
+    copy.setAttribute("borderId",String(borderId));
+    copy.setAttribute("applyBorder","1");
+    const newStyle=xfs.children.length;
+    xfs.append(copy);
+    styleCache.set(key,newStyle);
+    return newStyle;
+  }
+  const edgesByRow=new Map();
+  const addEdge=(row,col,edge)=>{
+    if(!row||col<2||col>31)return;
+    if(!edgesByRow.has(row))edgesByRow.set(row,new Map());
+    const byCol=edgesByRow.get(row);
+    if(!byCol.has(col))byCol.set(col,new Set());
+    byCol.get(col).add(edge);
   };
-  const gridTypes=new Set(["code","activity","price","color","size","name","description"]);
-  for(const row of children(child(sheetDoc.documentElement,"sheetData"),"row")){
-    if(!gridTypes.has(rowTypes.get(+row.getAttribute("r"))))continue;
-    const cells=new Map(children(row,"c").map(c=>[parseAddr(c.getAttribute("r"))?.col,c]));
-    // The A:AE area is the 10 x 3-column product grid. Keep original cell fills
-    // and formats; only add borders, including at formerly blank cells.
-    for(let col=1;col<=31;col++){
-      let cell=cells.get(col);
-      if(!cell){
-        cell=sheetDoc.createElementNS(NS,"c");
-        cell.setAttribute("r",colLetters(col)+row.getAttribute("r"));
-        // Take style from the same column's original row where available.
-        const nearest=cells.get(col-1)||cells.get(col+1);
-        if(nearest?.hasAttribute("s"))cell.setAttribute("s",nearest.getAttribute("s"));
-        let next=children(row,"c").find(c=>parseAddr(c.getAttribute("r"))?.col>col);
-        if(next)row.insertBefore(cell,next);else row.append(cell);
-        cells.set(col,cell);
+  for(const g of groups){
+    const top=rank.get(g.code),bottom=rank.get(g.description);
+    if(!top||!bottom)continue;
+    for(const center of g.productCols){
+      const left=center-1,right=center+1;
+      for(let row=top;row<=bottom;row++){
+        addEdge(row,left,"left");
+        addEdge(row,right,"right");
       }
-      const styleId=+(cell.getAttribute("s")||0);
-      cell.setAttribute("s",String(edgedStyle(styleId)));
+      for(let col=left;col<=right;col++){
+        addEdge(top,col,"top");
+        addEdge(bottom,col,"bottom");
+      }
+    }
+  }
+  // Do not create, remove or merge any cells. Only add a missing border edge
+  // where a cell already exists on the card perimeter.
+  for(const row of children(child(sheetDoc.documentElement,"sheetData"),"row")){
+    const byCol=edgesByRow.get(+row.getAttribute("r"));
+    if(!byCol)continue;
+    for(const cell of children(row,"c")){
+      const col=parseAddr(cell.getAttribute("r"))?.col;
+      const edges=byCol.get(col);
+      if(!edges)continue;
+      const before=+(cell.getAttribute("s")||0);
+      const after=outlineStyle(before,edges);
+      if(after!==before)cell.setAttribute("s",String(after));
     }
   }
   borders.setAttribute("count",String(borders.children.length));
@@ -417,7 +432,7 @@ async function buildOutput(){
   const workbookRels=[["rId1",R+"worksheet",sheet.path.replace(/^xl\//,"")]];
   if(sourceZip.file("xl/styles.xml")){
     const stylesDoc=await getXML(sourceZip,"xl/styles.xml");
-    applyCleanStyles(doc,stylesDoc,rowTypes);
+    applyCleanStyles(doc,stylesDoc,analysis.groups,rank);
     zip.file("xl/styles.xml",serialize(stylesDoc));
     workbookRels.push(["rId2",R+"styles","styles.xml"]);
   }
