@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="pazzo-schedule-cleaner/app.js?v=20261126-unified"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -236,6 +237,13 @@ textarea::placeholder,input[type=text]::placeholder{color:var(--faint);}
   .upload-grid,.color-row,.preview-grid-4,.stat-grid{grid-template-columns:1fr;}
   .home-title{font-size:24px;}
 }
+.hide{display:none!important}
+.pazzo-check{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);margin:10px 0}
+.pazzo-check input{width:16px;height:16px;accent-color:var(--accent)}
+.pazzo-status{padding:11px 14px;border:1px solid #b6dbba;border-radius:8px;background:#edf7ed;font-size:13px;line-height:1.7;margin-top:12px;word-break:break-word}
+.pazzo-status.error{border-color:#e2b9ae;background:#fff4f1;color:#9b3429}
+.pazzo-status strong{display:block}
+.drop-zone.drag{background:var(--accent-light);border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -580,6 +588,26 @@ textarea::placeholder,input[type=text]::placeholder{color:var(--faint);}
 </div>
 </template>
 
+<template id="tpl-t6">
+<div class="block">
+<div class="block-label">Step 01 &nbsp; 上傳原始商品檔期表</div>
+<div class="drop-zone" id="drop" role="button" tabindex="0">
+<div class="drop-arrow">↑</div><div class="drop-label">拖曳檔案到這裡，或 <button type="button" id="pick" style="border:0;background:transparent;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;">選擇 Excel</button></div>
+<div class="drop-hint">.xlsx · 在瀏覽器內處理，不上傳雲端</div><input id="fileInput" type="file" accept=".xlsx" hidden>
+</div>
+<div class="file-badge hide" id="fileBox"><span class="ck">✓</span><span class="fn" id="fileName"></span><span class="fc" id="fileSize"></span></div>
+<div id="sheetField" class="hide" style="margin-top:14px;"><div class="block-label" style="margin-bottom:6px;">選擇商品工作表</div><select id="sheetSelect" style="width:100%;padding:10px;border:1px solid var(--border2);border-radius:8px;background:var(--surface);font-size:14px;"></select></div>
+<div class="stat-grid hide" id="stats"><div class="stat-card"><div class="lbl">商品批次</div><div class="val" id="groupCount">—</div></div><div class="stat-card"><div class="lbl">辨識商品數</div><div class="val" id="productCount">—</div></div><div class="stat-card"><div class="lbl">原始圖片數</div><div class="val" id="imageCount">—</div></div></div>
+</div>
+<div class="block">
+<div class="block-label">Step 02 &nbsp; 整理規則</div>
+<div class="hint-box" style="margin:0 0 14px;">刪除總表、貨況、關鍵字／備註、供應商及其他內部編號、成本／毛利與 ONLINE 件數。<br>保留商品圖片、貨號、售價、顏色、OFFLINE 件數、尺寸及描述；移除整排完全空白的顏色／件數列，只補商品區塊外框線。字體統一微軟正黑體。</div>
+<label class="pazzo-check"><input type="checkbox" id="keepHighlights" checked> 保留 A+ 主推款標示</label>
+<label class="pazzo-check"><input type="checkbox" id="keepGifts" checked> 保留 GIFT／贈品說明</label>
+<button class="run-btn" id="run" disabled>整理並下載門市檔期表.xlsx</button>
+<div id="output" class="pazzo-status hide" aria-live="polite"></div>
+</div><div class="hint-note" style="line-height:1.7;">適用於 PAZZO 每款三欄的原始檔期表。下載後請檢查商品圖片、價格與數量，再分享其他部門。</div>
+</template>
 <script>
 
 /* ── Home Grid: Drag, Pin, Hide ── */
@@ -589,6 +617,7 @@ const TOOL_DEFS = [
   {id:'t3', name:'官網 TOP4 商品圖', desc:'上傳商品照片，自動產出四種尺寸的 TOP 標示圖', wide:false, tag:'僅 PAZZO 適用'},
   {id:'t4', name:'常態活動排除', desc:'從常態活動檔案中排除本次活動款式', wide:false},
   {id:'t5', name:'賣場 TAG 匯入', desc:'篩選活動款式、綁 TAG、拆分 200 筆下載，支援手動輸入與分類總表兩種模式', wide:true, badge:'NEW'},
+  {id:'t6', name:'門市檔期表整理', desc:'上傳商品檔期表，自動移除內部資訊並下載門市分享版 Excel', wide:false, tag:'僅 PAZZO 適用'},
 ];
 
 let gridState = {order:['t1','t2','t3','t4','t5'], pinned:[], hidden:[]};
@@ -600,6 +629,8 @@ function loadGridState(){
     const saved = localStorage.getItem('toolGridState');
     if(saved) gridState = {...gridState, ...JSON.parse(saved)};
   } catch(e){}
+  for(const def of TOOL_DEFS) if(!gridState.order.includes(def.id)) gridState.order.push(def.id);
+  gridState.order=gridState.order.filter(id=>TOOL_DEFS.some(def=>def.id===id));
 }
 function saveGridState(){
   try { localStorage.setItem('toolGridState', JSON.stringify(gridState)); } catch(e){}
@@ -729,6 +760,7 @@ const TOOLS = {
   t3:{name:'TOP4 商品圖',tpl:'tpl-t3',init:initT3},
   t4:{name:'常態活動排除',tpl:'tpl-t4',init:initT4},
   t5:{name:'賣場 TAG 匯入',tpl:'tpl-t5',init:initT5},
+  t6:{name:'門市檔期表整理',tpl:'tpl-t6',init:()=>window.initPazzoScheduleCleaner()},
 };
 // init home on load
 document.addEventListener('DOMContentLoaded', initHome);
