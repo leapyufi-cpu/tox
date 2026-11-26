@@ -91,7 +91,7 @@ function groupLayouts(rows){
     // count, keep that row for every product to preserve their vertical alignment.
     const colorRows=Array.from({length:r.size-r.color},(_,j)=>r.color+j).filter(i=>{
       const row=byIndex.get(i);
-      if(!row)return false;
+      if(!row || /關鍵字\s*[\/／]?\s*備註|商品角色|貨況|尺寸/.test(row.label))return false;
       return productCols.some(center=>{
         const color=cellValue(row.cells.get(center-1)).trim();
         const quantity=cellValue(row.cells.get(center+1)).trim().replace(/,/g,"");
