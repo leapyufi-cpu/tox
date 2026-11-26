@@ -484,8 +484,10 @@ async function run(){
   }catch(e){console.error(e);showStatus(e?.message||"處理過程失敗。",true);}
   finally{btn.disabled=false;btn.textContent="整理並下載分享版 Excel";}
 }
-document.addEventListener("DOMContentLoaded",()=>{
+function initPazzoScheduleCleaner(){
   const file=$("fileInput"),drop=$("drop");
+  if(!file || !drop || file.dataset.cleanerInitialized==="true")return;
+  file.dataset.cleanerInitialized="true";
   $("pick").addEventListener("click",()=>file.click());
   drop.addEventListener("click",e=>{if(e.target.id!=="pick")file.click();});
   drop.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();file.click();}});
@@ -495,4 +497,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("drag");if(e.dataTransfer.files[0])inspectFile(e.dataTransfer.files[0]);});
   $("sheetSelect").addEventListener("change",refreshStats);
   $("run").addEventListener("click",run);
+}
+window.initPazzoScheduleCleaner=initPazzoScheduleCleaner;
+document.addEventListener("DOMContentLoaded",()=>{
+  if($("fileInput"))initPazzoScheduleCleaner();
 });
